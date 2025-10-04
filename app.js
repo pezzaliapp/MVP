@@ -1,5 +1,6 @@
 // app.js — Preventivo PRO (gratuito con omaggio)
-// img per riga + modalità Margine/Ricarico + auto-prezzo + PRINT VIEW (interna/cliente) + CATALOGO con ricerca
+// img per riga + modalità Margine/Ricarico + auto-prezzo (+ flag _auto) + PRINT VIEW (interna/cliente)
+// + CATALOGO con ricerca + extra come numero o testo
 
 const $ = sel => document.querySelector(sel);
 const money = v => (v || 0).toLocaleString('it-IT', { style:'currency', currency:'EUR' });
@@ -17,8 +18,7 @@ window.addEventListener('beforeinstallprompt', e=>{
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); }
 
 // ===== Modalità prezzo (persistita) =====
-// 'margin' = margine vero; 'markup' = ricarico
-let pricingMode = localStorage.getItem('preventivo.pro.mode') || 'margin';
+let pricingMode = localStorage.getItem('preventivo.pro.mode') || 'margin'; // 'margin' | 'markup'
 
 // ===== Extra (numero o testo) =====
 function getExtra(){
@@ -42,6 +42,13 @@ function priceFromMarkup(cost, markupPct){
 function basePrice(cost, pct){
   return pricingMode==='margin' ? priceFromMargin(cost, pct) : priceFromMarkup(cost, pct);
 }
+
+// ===== Stato & storage =====
+let rows = [];
+let catalog = []; // <- CATALOGO ricercabile
+
+const storeKey   = 'preventivo.pro.v1';
+const catalogKey = 'preventivo.pro.catalog.v1';
 
 // ===== Image utils =====
 function fileToDataURL(file){
@@ -94,13 +101,7 @@ function toast(msg){
   setTimeout(()=> t.remove(), 2300);
 }
 
-// ===== Stato & storage =====
-let rows = [];
-let catalog = []; // <- CATALOGO ricercabile
-
-const storeKey = 'preventivo.pro.v1';
-const catalogKey = 'preventivo.pro.catalog.v1';
-
+// ===== Storage =====
 function save(){
   localStorage.setItem(storeKey, JSON.stringify({
     client:$('#client').value,
@@ -127,7 +128,7 @@ function load(){
     $('#vat').value = x.vat || 22;
     $('#extra').value = x.extra || 0;
     if(x.pricingMode){ pricingMode = x.pricingMode; localStorage.setItem('preventivo.pro.mode', pricingMode); }
-    rows = (x.rows||[]).map(r => ({...r}));
+    rows = (x.rows||[]).map(r => ({_auto:false, ...r}));
   }
   catalog = JSON.parse(localStorage.getItem(catalogKey)||'[]');
   render(); calc(); updateModeUI();
@@ -149,9 +150,9 @@ function hookModeMirror(){
   sel.addEventListener('change', ()=>{
     pricingMode = (sel.value==='Ricarico') ? 'markup' : 'margin';
     localStorage.setItem('preventivo.pro.mode', pricingMode);
+    // Le righe auto tornano dinamiche
+    rows = rows.map(r => r._auto ? ({...r, price:0, _auto:false}) : r);
     updateModeUI();
-    // ricalcola righe non forzate
-    rows = rows.map(r => (Number(r.price)>0) ? r : {...r, price:0});
     render(); calc();
   });
 }
@@ -159,7 +160,7 @@ function hookModeMirror(){
 // ===== Righe =====
 const tbody = $('#items');
 
-function addRow(r={desc:'',cost:0,margin:30,price:0,qty:1,disc:0,img192:null,img512:null,name:null}){
+function addRow(r={desc:'',cost:0,margin:30,price:0,qty:1,disc:0,img192:null,img512:null,name:null,_auto:false}){
   rows.push(r); render(); calc();
   setTimeout(()=>{
     const last = tbody.querySelector('tr.item:last-child input[data-k="desc"]');
@@ -173,7 +174,7 @@ function escapeHtml(s){
 }
 
 // ===== Autocomplete (catalogo) =====
-let acBox; let acIndex = -1; let acFor; // input attivo
+let acBox; let acIndex = -1; let acFor;
 function ensureACStyles(){
   if($('#ac-style')) return;
   const st = document.createElement('style'); st.id='ac-style';
@@ -217,9 +218,9 @@ function updateACList(query){
 
   acBox.innerHTML = list.map((it,idx)=>`
     <div class="ac-item" data-idx="${idx}">
-      <span class="ac-code">${escapeHtml(it.code || '—')}</span>
-      <span class="ac-desc">${escapeHtml(it.desc || '')}</span>
-      <span class="ac-price">${money(+it.cost || 0)}</span>
+      <span class="ac-code">${escapeHtml(it.code||'—')}</span>
+      <span class="ac-desc">${escapeHtml(it.desc||'')}</span>
+      <span class="ac-price">${money(+it.cost||0)}</span>
     </div>
   `).join('');
 
@@ -228,7 +229,7 @@ function updateACList(query){
     el.addEventListener('mousedown', (ev)=>{ ev.preventDefault(); selectAC(+el.dataset.idx); });
   });
 
-  acBox._data = list; // risultati correnti
+  acBox._data = list;
   acIndex = 0; markAC();
 }
 function markAC(){
@@ -240,11 +241,12 @@ function selectAC(idx){
   const item = acBox._data?.[idx]; if(!item) return;
   const i = acFor.rowIndex;
 
-  // Scrive la DESCRIZIONE nel campo giusto, non il costo
+  // Scrive la DESCRIZIONE (non il costo) + set dinamico
   rows[i].desc   = item.desc || rows[i].desc;
-  rows[i].cost   = Number(item.cost)   || 0;
-  rows[i].margin = Number(item.margin) || (rows[i].margin || 30);
-  rows[i].price  = 0; // lasciare 0 per ricalcolo automatico con la modalità corrente
+  rows[i].cost   = Number(item.cost)||0;
+  rows[i].margin = Number(item.margin)|| (rows[i].margin||30);
+  rows[i].price  = 0;          // lascia 0 => ricalcolo
+  rows[i]._auto  = false;      // riga manuale/dinamica
 
   // aggiorna inputs della riga già in DOM
   const tr = acFor.input.closest('tr');
@@ -255,7 +257,6 @@ function selectAC(idx){
 
   closeAC(); calc();
 }
-
 function attachAutocomplete(input, i){
   input.addEventListener('focus', ()=> openACFor(input,i));
   input.addEventListener('input', ()=> updateACList(input.value));
@@ -305,7 +306,7 @@ function render(){
     `;
     tbody.appendChild(tr);
 
-    // attacca l’autocomplete alla descrizione
+    // Autocomplete sulla descrizione
     attachAutocomplete(tr.querySelector('input[data-k="desc"]'), i);
   });
   updateModeUI();
@@ -325,6 +326,18 @@ tbody.addEventListener('input', e=>{
     rows[i][k] = Number.isFinite(val) ? val : 0;
   }
 
+  // Se costo o margine cambiano e riga era _auto => torna dinamica
+  if((k === 'cost' || k === 'margin') && rows[i]._auto){
+    rows[i].price = 0;
+    rows[i]._auto = false;
+  }
+
+  // Se utente modifica prezzo => manuale
+  if(k === 'price'){
+    rows[i]._auto = false;
+  }
+
+  // Ricalcolo dinamico quando il prezzo è 0 (non forzato)
   if((k==='cost' || k==='margin') && !(Number(rows[i].price)>0)){
     const priceInput = el.closest('tr').querySelector('input[data-k="price"]');
     if(priceInput) priceInput.value = basePrice(Number(rows[i].cost)||0, Number(rows[i].margin)||0);
@@ -386,7 +399,7 @@ function calc(){
   $('#sumTotale').textContent     = money(totale);
 }
 
-// ===== Auto-prezzo =====
+// ===== Auto-prezzo (target margine medio) =====
 $('#autoPrice')?.addEventListener('click', ()=>{
   const target = (Number($('#targetMargin')?.value)||30)/100;
   const extra  = getExtra().amount;
@@ -404,13 +417,17 @@ $('#autoPrice')?.addEventListener('click', ()=>{
 
   rows = rows.map(r=>{
     const base = (Number(r.price)>0 ? Number(r.price) : basePrice(Number(r.cost)||0, Number(r.margin)||0));
-    return {...r, price: +((base * factor).toFixed(2))};
+    return {...r, price: +((base * factor).toFixed(2)), _auto:true};
   });
 
   render(); calc();
 });
 
 // ===== Import CSV -> CATALOGO =====
+// Formati supportati (intestazione opzionale):
+// 1) code,desc,cost,margin,price
+// 2) desc,cost,margin,price
+// 3) desc,cost,margin
 $('#importCsv')?.addEventListener('click',()=>{
   const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv,text/csv';
   inp.onchange=()=>{
@@ -419,13 +436,11 @@ $('#importCsv')?.addEventListener('click',()=>{
     reader.onload=()=>{
       const lines=String(reader.result).split(/\r?\n/).filter(Boolean);
       const out=[];
-      // salta eventuale intestazione se contiene lettere
       const start= (lines[0] && /[a-zA-Z]/.test(lines[0])) ? 1 : 0;
       for(let li=start; li<lines.length; li++){
         const raw = lines[li].trim();
         if(!raw) continue;
         const p = raw.split(/;|,/).map(s=>s.replace(/^"(.*)"$/,'$1'));
-        // mapping flessibile
         let code='', desc='', cost=0, margin=30, price=0;
         if(p.length>=5){ [code,desc,cost,margin,price] = [p[0],p[1],+p[2]||0,+p[3]||30,+p[4]||0]; }
         else if(p.length===4){ [desc,cost,margin,price] = [p[0],+p[1]||0,+p[2]||30,+p[3]||0]; }
@@ -442,12 +457,12 @@ $('#importCsv')?.addEventListener('click',()=>{
   inp.click();
 });
 
-// ===== Demo righe (facoltativo) =====
+// ===== Demo righe =====
 $('#demoCsv')?.addEventListener('click',()=>{
   rows=[];
-  rows.push({desc:'Piattaforma sollevamento PFA50', cost:9900, margin:30, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
-  rows.push({desc:'Smontagomme FT26SN', cost:3900, margin:35, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
-  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:3950, margin:28, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
+  rows.push({desc:'Piattaforma sollevamento PFA50', cost:9900, margin:30, price:0, qty:1, disc:0, img192:null,img512:null,name:null,_auto:false});
+  rows.push({desc:'Smontagomme FT26SN',            cost:3900, margin:35, price:0, qty:1, disc:5, img192:null,img512:null,name:null,_auto:false});
+  rows.push({desc:'Bilanciatrice MEC 200 Truck',   cost:3950, margin:28, price:0, qty:1, disc:0, img192:null,img512:null,name:null,_auto:false});
   render(); calc();
 });
 
@@ -461,11 +476,7 @@ function parseNumber(s){
   return Number(String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',', '.'))||0;
 }
 
-/**
- * buildPrintView
- * @param {'internal'|'client'} mode
- */
-function buildPrintView(mode='internal'){
+function buildPrintView(mode='internal'){ // 'internal' | 'client'
   const pv = $('#printView');
   if(!pv) return;
 
@@ -473,7 +484,8 @@ function buildPrintView(mode='internal'){
   const sumImpon = $('#sumImponibile')?.textContent || money(0);
   const sumTot   = $('#sumTotale')?.textContent || money(0);
   const ivaPct   = +( $('#vat')?.value || 22 );
-  const extraInfo= getExtra();
+
+  const extraInfo = getExtra();
   const extraShown = (/^-?\d+(?:[.,]\d+)?$/.test(extraInfo.label))
     ? money(extraInfo.amount)
     : escapeHtml(extraInfo.label);
@@ -558,7 +570,9 @@ function buildPrintView(mode='internal'){
       <div class="pv-totals">
         ${kpiRicavi}
         <div class="pv-kpi"><b>Totale imponibile</b><div class="val">${sumImpon}</div></div>
-        <div class="pv-kpi"><b>IVA ${ivaPct}% inclusa</b><div class="val">${money(parseNumber(sumTot) - parseNumber(sumImpon))}</div></div>
+        <div class="pv-kpi"><b>IVA ${ivaPct}% inclusa</b><div class="val">${
+          money(parseNumber(sumTot) - parseNumber(sumImpon))
+        }</div></div>
         <div class="pv-kpi"><b>Totale IVA inclusa</b><div class="val">${sumTot}</div></div>
       </div>
 
@@ -573,7 +587,7 @@ function buildPrintView(mode='internal'){
 // ===== Stampa =====
 let lastPrintMode = 'internal';
 $('#printInternalBtn')?.addEventListener('click', ()=>{ lastPrintMode='internal'; buildPrintView('internal'); window.print(); });
-$('#printClientBtn')?.addEventListener('click', ()=>{ lastPrintMode='client';  buildPrintView('client');  window.print(); });
+$('#printClientBtn')?.addEventListener('click',  ()=>{ lastPrintMode='client';  buildPrintView('client');  window.print(); });
 window.addEventListener('beforeprint', ()=>{ buildPrintView(lastPrintMode || 'internal'); });
 
 // ===== Pulsanti base =====
