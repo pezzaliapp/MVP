@@ -7,27 +7,163 @@
   <meta name="theme-color" content="#0f172a">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="style.css">
+  <style>
+    :root{--bg:#0b1022;--card:#111735;--ink:#f1f4ff;--muted:#9fb0d9;--cta:#22c55e;--line:#1d2a55}
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial;background:radial-gradient(1200px 600px at 10% -10%,#162250 0%,#0b1022 40%,#070a16 100%) fixed;color:var(--ink)}
+    header{position:sticky;top:0;z-index:10;background:rgba(11,16,34,.7);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+    .bar{max-width:1100px;margin:0 auto;padding:14px 16px;display:flex;gap:10px;align-items:center}
+    h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
+    .tag{font-size:12px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+    .btn{appearance:none;border:1px solid var(--line);background:#111834;color:var(--ink);padding:10px 14px;border-radius:10px;cursor:pointer}
+    .btn:hover{transform:translateY(-1px)}
+    .btn-cta{background:var(--cta);border-color:#0e8a43;color:#07120c;font-weight:700}
+    .btn-ghost{background:transparent}
+    main{max-width:1100px;margin:18px auto;padding:0 16px 100px}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+    .card{background:linear-gradient(180deg,rgba(28,42,85,.4),rgba(17,24,52,.7));border:1px solid var(--line);border-radius:16px;box-shadow:0 6px 22px rgba(0,0,0,.25)}
+    .card h2{margin:0;padding:16px;border-bottom:1px solid var(--line);font-size:16px}
+    .section{padding:14px 16px}
+    label{font-size:12px;color:var(--muted)}
+    input,select{width:100%;padding:10px 12px;margin-top:6px;background:#0f1836;border:1px solid var(--line);border-radius:10px;color:var(--ink)}
+    table{width:100%;border-collapse:separate;border-spacing:0 10px}
+    th{font-size:12px;color:var(--muted);text-align:left;padding:0 8px}
+    td{padding:6px 8px}
+    tr.item{background:#0f1836;border:1px solid var(--line)}
+    tr.item td:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+    tr.item td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+    .right{text-align:right}
+    .muted{color:var(--muted)}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .totals{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    footer{position:fixed;bottom:0;left:0;right:0;background:rgba(11,16,34,.85);backdrop-filter:blur(8px);border-top:1px solid var(--line)}
+    .foot{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+    .foot small{color:var(--muted)}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    /* Print */
+    @media print{
+      header, footer, #resetApp, #unlockPro, #installBtn, #importCsv, #saveQuote, #printBtn, #addItem, [data-del]{ display:none !important; }
+      body{background:white;color:#111}
+      .card{box-shadow:none;border:1px solid #ddd}
+      body.free::before{
+        content: "DEMO — NON PER USO COMMERCIALE";
+        position: fixed; top: 35%; left: -10%; transform: rotate(-30deg);
+        font-weight: 800; font-size: 72px; letter-spacing: 2px;
+        color: rgba(239, 68, 68, 0.18); width: 140%; text-align: center; z-index: 9999;
+      }
+    }
+  </style>
 </head>
 <body>
   <header>
     <div class="bar">
       <h1>Preventivo PRO</h1>
       <span class="tag">PWA • Offline</span>
-      <button id="installBtn" hidden>Aggiungi alla Home</button>
+      <button id="installBtn" class="btn btn-ghost" hidden>Aggiungi alla Home</button>
       <div style="flex:1"></div>
-      <button id="importCsv">Importa CSV</button>
-      <button id="saveQuote">Salva</button>
-      <button id="printBtn">Stampa/PDF</button>
-      <button id="unlockPro">Sblocca PRO</button>
+      <button class="btn" id="importCsv">Importa CSV</button>
+      <button class="btn" id="saveQuote">Salva</button>
+      <button class="btn" id="printBtn">Stampa/PDF</button>
+      <button class="btn btn-cta" id="unlockPro">Sblocca PRO</button>
     </div>
   </header>
+
   <main>
-    <p>Benvenuto in Preventivo PRO — l'app PWA per creare preventivi con calcolo margini.</p>
+    <div class="grid">
+      <section class="card">
+        <h2>Dati cliente & preventivo</h2>
+        <div class="section" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label>Cliente</label>
+            <input id="client" placeholder="Ragione sociale / Nome" autocomplete="organization"/>
+          </div>
+          <div>
+            <label>Email</label>
+            <input id="email" placeholder="email@cliente.it" type="email"/>
+          </div>
+          <div>
+            <label>Oggetto</label>
+            <input id="subject" placeholder="Fornitura + installazione..."/>
+          </div>
+          <div>
+            <label>Validità</label>
+            <select id="validDays">
+              <option value="15">15 giorni</option>
+              <option value="30" selected>30 giorni</option>
+              <option value="60">60 giorni</option>
+            </select>
+          </div>
+        </div>
+        <div class="section">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <strong>Voci di preventivo</strong>
+            <button class="btn" id="addItem">+ Aggiungi riga</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Descrizione</th>
+                <th class="right">Costo</th>
+                <th class="right">Margine %</th>
+                <th class="right">Prezzo netto</th>
+                <th class="right">Q.tà</th>
+                <th class="right">Sconto %</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="items"></tbody>
+          </table>
+          <div class="pill" style="margin-top:8px"><span>CSV demo:</span><button class="btn btn-ghost" id="demoCsv">carica 3 righe</button></div>
+        </div>
+      </section>
+
+      <aside class="card">
+        <h2>Margini & Totali</h2>
+        <div class="section">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label>IVA %</label>
+              <input id="vat" type="number" value="22"/>
+            </div>
+            <div>
+              <label>Spese (trasporto, installazione)</label>
+              <input id="extra" type="number" value="0"/>
+            </div>
+          </div>
+          <div class="totals">
+            <div class="card" style="padding:12px">
+              <div class="muted">Ricavi netti</div>
+              <div class="mono" id="sumNetto" style="font-size:22px">€0,00</div>
+              <div class="muted">Margine assoluto</div>
+              <div class="mono" id="sumMargin">€0,00</div>
+            </div>
+            <div class="card" style="padding:12px">
+              <div class="muted">Totale imponibile</div>
+              <div class="mono" id="sumImponibile" style="font-size:22px">€0,00</div>
+              <div class="muted">Totale IVA inclusa</div>
+              <div class="mono" id="sumTotale">€0,00</div>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="pill">Target margine medio %: <input id="targetMargin" type="number" value="30" style="width:80px;margin-left:8px"></div>
+            <button class="btn" id="autoPrice" style="margin-top:8px">Suggerisci prezzi per target</button>
+            <p class="muted" style="margin-top:10px">Suggeritore: calcola i prezzi netti per ogni riga per raggiungere il <em>target</em> di margine medio.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
   </main>
+
   <footer>
-    <small>© 2025 pezzaliAPP — MIT</small>
+    <div class="foot">
+      <small>© 2025 pezzaliAPP — MIT • Dati locali nel tuo browser • Versione gratuita limitata a 1 preventivo salvato</small>
+      <div>
+        <button class="btn" id="resetApp">Reset dati</button>
+      </div>
+    </div>
   </footer>
+
   <script src="./app.js"></script>
 </body>
 </html>

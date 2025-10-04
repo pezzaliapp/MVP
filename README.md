@@ -1,16 +1,7 @@
-# Preventivo PRO — PWA che monetizza (MVP)
+# Preventivo PRO — UI migliorata
 
-**Cosa fa:** genera preventivi professionali con calcolo margine, prezzi suggeriti per target di margine medio, stampa/PDF e salvataggio locale.
+- Tutto inline (niente CSS esterni) → carica e funziona ovunque.
+- Free: watermark in stampa, 1 preventivo salvato.
+- PRO: illimitato, niente watermark (usa `?pro=1` per test locale).
 
-**Modello freemium:**
-- Gratis: 1 preventivo salvato, stampa con watermark.
-- PRO (Stripe Checkout): preventivi illimitati, PDF senza watermark, loghi/branding, esportazione CSV avanzata.
-
-## Come monetizzare
-- Abbonamento (es. 9,90 €/mese) o licenza lifetime.
-- Sconti annuali + upsell di template PDF/lettere commerciali.
-- Versione Android su Google Play via Trusted Web Activity (TWA).
-- iOS tramite wrapper (Capacitor) per App Store.
-
-## CSV atteso
-`desc,cost,margin,price,qty,disc`
+CSV: `desc,cost,margin,price,qty,disc`.
