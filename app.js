@@ -1,6 +1,5 @@
 // app.js — Preventivo PRO (gratuito con omaggio)
 // img per riga + modalità Margine/Ricarico + auto-prezzo + PRINT VIEW (interna/cliente) + CATALOGO con ricerca
-// Prezzo netto in tabella e stampa = prezzo unitario POST-SCONTO
 
 const $ = sel => document.querySelector(sel);
 const money = v => (v || 0).toLocaleString('it-IT', { style:'currency', currency:'EUR' });
@@ -22,21 +21,17 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); }
 let pricingMode = localStorage.getItem('preventivo.pro.mode') || 'margin';
 
 // ===== Extra (numero o testo) =====
-// Estrae il PRIMO importo presente nel testo (1.200,50 | 1200.50 | "trasporto € 75,50", ecc.)
-// Se non trova numeri => amount=0. label = testo originale.
+// Estrae il PRIMO importo nel testo; se non trova importi => 0.
+// Esempi validi: "inclusi", "trasporto 120", "installazione € 75,50", "1.200,50".
 function getExtra(){
   const raw = ($('#extra')?.value ?? '').trim();
   if (!raw) return { amount: 0, label: '0' };
-
   const m = raw.match(/[-+]?\d{1,3}(?:[.\s\u00A0]\d{3})*(?:[.,]\d+)?|[-+]?\d+(?:[.,]\d+)?/);
   let amount = 0;
   if (m) {
     let s = m[0].replace(/[^\d.,\-+]/g, '');
-    if (s.includes('.') && s.includes(',')) {
-      s = s.replace(/\./g, '').replace(',', '.'); // "1.234,56" -> "1234.56"
-    } else if (s.includes(',')) {
-      s = s.replace(',', '.');
-    }
+    if (s.includes('.') && s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+    else if (s.includes(',')) s = s.replace(',', '.');
     const n = parseFloat(s);
     amount = Number.isFinite(n) ? n : 0;
   }
@@ -140,7 +135,7 @@ function load(){
     $('#subject').value= x.subject|| '';
     $('#validDays').value = x.validDays || '30';
     $('#vat').value = x.vat || 22;
-    $('#extra').value = x.extra || '0';
+    $('#extra').value = x.extra || 0;
     if(x.pricingMode){ pricingMode = x.pricingMode; localStorage.setItem('preventivo.pro.mode', pricingMode); }
     rows = (x.rows||[]).map(r => ({...r}));
   }
@@ -255,21 +250,18 @@ function selectAC(idx){
   const item = acBox._data?.[idx]; if(!item) return;
   const i = acFor.rowIndex;
 
+  // Scrive la DESCRIZIONE corretta
   rows[i].desc   = item.desc || rows[i].desc;
   rows[i].cost   = Number(item.cost)   || 0;
   rows[i].margin = Number(item.margin) || (rows[i].margin || 0);
-  rows[i].price  = 0; // lasciare 0 per ricalcolo automatico con la modalità corrente
+  rows[i].price  = 0; // ricalcolo auto con la modalità corrente
 
   // aggiorna inputs della riga già in DOM
   const tr = acFor.input.closest('tr');
   tr.querySelector('input[data-k="desc"]').value   = rows[i].desc;
   tr.querySelector('input[data-k="cost"]').value   = rows[i].cost;
   tr.querySelector('input[data-k="margin"]').value = rows[i].margin;
-
-  // mostra prezzo unitario POST-SCONTO
-  const base = rows[i].price>0 ? rows[i].price : basePrice(rows[i].cost, rows[i].margin);
-  const finalUnit = +(base * (1 - (Number(rows[i].disc)||0)/100)).toFixed(2);
-  tr.querySelector('input[data-k="price"]').value  = finalUnit;
+  tr.querySelector('input[data-k="price"]').value  = basePrice(rows[i].cost, rows[i].margin);
 
   closeAC(); calc();
 }
@@ -294,8 +286,8 @@ function attachAutocomplete(input, i){
 function render(){
   tbody.innerHTML = '';
   rows.forEach((r,i)=>{
-    const base = (Number(r.price)>0 ? Number(r.price) : basePrice(Number(r.cost)||0, Number(r.margin)||0));
-    const finalUnit = +(base * (1 - ((Number(r.disc)||0)/100))).toFixed(2);
+    const computed = basePrice(Number(r.cost)||0, Number(r.margin)||0);
+    const displayPrice = (Number(r.price)>0) ? Number(r.price) : computed;
 
     const cover = r.img192
       ? `<img src="${r.img192}" alt="img" class="thumb">`
@@ -316,7 +308,7 @@ function render(){
       <td><input data-i="${i}" data-k="desc" value="${escapeHtml(r.desc)}" placeholder="Voce o cerca nel catalogo…"></td>
       <td class="right"><input data-i="${i}" data-k="cost" type="number" inputmode="decimal" step="0.01" value="${Number(r.cost)||0}"></td>
       <td class="right"><input data-i="${i}" data-k="margin" type="number" inputmode="decimal" step="0.1" value="${Number(r.margin)||0}"></td>
-      <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${finalUnit}"></td>
+      <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${displayPrice}"></td>
       <td class="right"><input data-i="${i}" data-k="qty" type="number" step="1" value="${Number(r.qty)||1}"></td>
       <td class="right"><input data-i="${i}" data-k="disc" type="number" inputmode="decimal" step="0.1" value="${Number(r.disc)||0}"></td>
       <td><button class="btn" data-del="${i}">×</button></td>
@@ -330,52 +322,23 @@ function render(){
 }
 
 // ===== Input live =====
-// Regole importanti:
-// - Il campo "price" in UI rappresenta SEMPRE il prezzo unitario POST-SCONTO.
-// - Se l'utente modifica "price", salviamo internamente il PREZZO BASE dividendo per (1 - disc).
-// - Se cambia "disc", aggiorniamo subito la UI del price per mostrare il nuovo post-sconto.
-// - Se cambiano cost/margin e la riga NON è forzata (price==0), ricalcoliamo base e aggiorniamo la UI del price.
 tbody.addEventListener('input', e=>{
   const el = e.target;
   const i  = Number(el.dataset.i);
   const k  = el.dataset.k;
   if(!Number.isFinite(i) || !rows[i]) return;
 
-  const row = rows[i];
-
-  const numFrom = v => {
-    if (v === '' || v == null) return 0;
-    return Number(String(v).replace(',', '.')) || 0;
-  };
-
   if(k === 'desc'){
-    row.desc = el.value;
-  }else if(k === 'price'){
-    // utente ha inserito un PREZZO POST-SCONTO -> ricava base
-    const post = numFrom(el.value);
-    const disc = numFrom(el.closest('tr').querySelector('input[data-k="disc"]').value);
-    const factor = Math.max(1 - (disc/100), 0.0001);
-    const base = +(post / factor).toFixed(2);
-    row.price = base; // ora la riga è "forzata"
+    rows[i].desc = el.value;
   }else{
-    // altri numerici
-    const val = numFrom(el.value);
-    row[k] = val;
+    const val = el.value === '' ? 0 : Number(String(el.value).replace(',', '.'));
+    rows[i][k] = Number.isFinite(val) ? val : 0;
   }
 
-  // aggiornamenti dipendenti
-  const baseNow = (Number(row.price)>0 ? Number(row.price) : basePrice(Number(row.cost)||0, Number(row.margin)||0));
-  const discNow = Number(row.disc)||0;
-  const postNow = +(baseNow * (1 - discNow/100)).toFixed(2);
-
-  if(k==='disc' || k==='cost' || k==='margin'){
-    // aggiorna il campo prezzo visibile come post-sconto, ma:
-    // - se (cost/margin) e la riga è forzata (price>0), NON tocchiamo il base salvato.
-    // - se (cost/margin) e non forzata (price==0), ricalcolo già fatto in baseNow.
+  if((k==='cost' || k==='margin') && !(Number(rows[i].price)>0)){
     const priceInput = el.closest('tr').querySelector('input[data-k="price"]');
-    if(priceInput) priceInput.value = postNow;
+    if(priceInput) priceInput.value = basePrice(Number(rows[i].cost)||0, Number(rows[i].margin)||0);
   }
-
   calc();
 });
 
@@ -434,7 +397,6 @@ function calc(){
 }
 
 // ===== Auto-prezzo =====
-// Imposta r.price come PREZZO BASE (non scontato). In UI verrà mostrato post-sconto.
 $('#autoPrice')?.addEventListener('click', ()=>{
   const target = (Number($('#targetMargin')?.value)||30)/100;
   const extra  = getExtra().amount;
@@ -452,52 +414,132 @@ $('#autoPrice')?.addEventListener('click', ()=>{
 
   rows = rows.map(r=>{
     const base = (Number(r.price)>0 ? Number(r.price) : basePrice(Number(r.cost)||0, Number(r.margin)||0));
-    return {...r, price: +((base * factor).toFixed(2))}; // salva BASE
+    return {...r, price: +((base * factor).toFixed(2))};
   });
 
   render(); calc();
 });
 
-// ===== Import CSV -> CATALOGO =====
-$('#importCsv')?.addEventListener('click',()=>{
-  const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv,text/csv';
+// ===== CSV ROBUSTO =====
+function detectSeparator(line){
+  const c = (line.match(/,/g)||[]).length;
+  const s = (line.match(/;/g)||[]).length;
+  return s>c ? ';' : ',';
+}
+function parseCsvLine(line, sep){
+  const out = []; let cur = ''; let inQ = false;
+  for(let i=0;i<line.length;i++){
+    const ch = line[i];
+    if(ch === '"'){
+      if(inQ && line[i+1] === '"'){ cur += '"'; i++; }
+      else inQ = !inQ;
+    }else if(ch === sep && !inQ){ out.push(cur); cur=''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+function normalizeCsvText(txt){
+  let s = txt.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+  const lines = s.split('\n');
+  return lines.map(l=>l.trim()).filter(l=>l.length>0);
+}
+function buildHeaderMap(firstRow){
+  const n = firstRow.map(s => (s||'').toString().trim().toLowerCase());
+  const idx = name => n.indexOf(name);
+  const map = {
+    code:   Math.max(idx('code'), idx('codice')),
+    desc:   Math.max(idx('desc'), idx('descrizione')),
+    cost:   Math.max(idx('cost'), idx('costo')),
+    margin: Math.max(idx('margin'), idx('margine')),
+    price:  Math.max(idx('price'), idx('prezzo'))
+  };
+  const any = Object.values(map).some(i => i>=0);
+  if(!any) return null;
+  for(const k in map){ if(map[k] < 0) map[k] = undefined; }
+  return map;
+}
+function mapCsvRow(cols, headerMap){
+  let code='', desc='', cost=0, margin=0, price=0;
+  const num = v => {
+    if(v==null || v==='') return 0;
+    return Number(String(v).replace(/\./g,'').replace(',', '.'))||0;
+  };
+  if(headerMap){
+    const g = n => cols[headerMap[n]] ?? '';
+    code   = (headerMap.code!=null)   ? g('code')   : '';
+    desc   = (headerMap.desc!=null)   ? g('desc')   : '';
+    cost   = (headerMap.cost!=null)   ? num(g('cost'))   : 0;
+    margin = (headerMap.margin!=null) ? num(g('margin')) : 0;
+    price  = (headerMap.price!=null)  ? num(g('price'))  : 0;
+  }else{
+    if(cols.length >= 5){
+      [code,desc,cost,margin,price] = [cols[0], cols[1], num(cols[2]), num(cols[3]), num(cols[4])];
+    }else if(cols.length === 4){
+      [desc,cost,margin,price] = [cols[0], num(cols[1]), num(cols[2]), num(cols[3])];
+    }else if(cols.length === 3){
+      [desc,cost,margin] = [cols[0], num(cols[1]), num(cols[2])];
+    }else if(cols.length === 2){
+      [desc,cost] = [cols[0], num(cols[1])];
+    }else return null;
+  }
+  if(!desc && !code) return null;
+  return { code, desc, cost, margin, price };
+}
+
+// ===== Import CSV -> CATALOGO (robusto) =====
+function handleImportCsv(){
+  const inp=document.createElement('input'); 
+  inp.type='file'; 
+  inp.accept='.csv,text/csv';
   inp.onchange=()=>{
     const f=inp.files?.[0]; if(!f) return;
     const reader=new FileReader();
     reader.onload=()=>{
-      const lines=String(reader.result).split(/\r?\n/).filter(Boolean);
-      const out=[];
-      // salta eventuale intestazione se contiene lettere
-      const start= (lines[0] && /[a-zA-Z]/.test(lines[0])) ? 1 : 0;
-      for(let li=start; li<lines.length; li++){
-        const raw = lines[li].trim();
-        if(!raw) continue;
-        const p = raw.split(/;|,/).map(s=>s.replace(/^"(.*)"$/,'$1'));
-        // mapping flessibile (default margin=0)
-        let code='', desc='', cost=0, margin=0, price=0;
-        if(p.length>=5){ [code,desc,cost,margin,price] = [p[0],p[1],+p[2]||0,+p[3]||0,+p[4]||0]; }
-        else if(p.length===4){ [desc,cost,margin,price] = [p[0],+p[1]||0,+p[2]||0,+p[3]||0]; }
-        else if(p.length===3){ [desc,cost,margin] = [p[0],+p[1]||0,+p[2]||0]; }
-        else { continue; }
-        out.push({code, desc, cost, margin, price});
+      try{
+        const lines = normalizeCsvText(String(reader.result));
+        if(lines.length===0){ toast('CSV vuoto'); return; }
+        const sep = detectSeparator(lines[0]);
+        const first = parseCsvLine(lines[0], sep);
+        const headerMap = buildHeaderMap(first);
+        const startIdx = headerMap ? 1 : 0;
+
+        const out=[];
+        for(let i=startIdx;i<lines.length;i++){
+          const cols = parseCsvLine(lines[i], sep);
+          const rec  = mapCsvRow(cols, headerMap);
+          if(rec) out.push(rec);
+        }
+
+        catalog = out;
+        localStorage.setItem(catalogKey, JSON.stringify(catalog));
+        toast(`Catalogo importato: ${catalog.length} articoli`);
+      }catch(err){
+        console.error(err);
+        alert('Errore import CSV: '+err.message);
       }
-      catalog = out;
-      localStorage.setItem(catalogKey, JSON.stringify(catalog));
-      toast(`Catalogo importato: ${catalog.length} articoli`);
     };
     reader.readAsText(f);
   };
   inp.click();
-});
+}
 
-// ===== Demo righe (facoltativo) =====
-$('#demoCsv')?.addEventListener('click',()=>{
-  rows=[];
-  rows.push({desc:'Piattaforma sollevamento PFA50', cost:22500, margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
-  rows.push({desc:'Smontagomme FT26SN',         cost:9750,  margin:0, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
-  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:9880,  margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
-  render(); calc();
-});
+// binding “statico” + delega di sicurezza
+function bindStaticHandlers(){
+  $('#importCsv')?.addEventListener('click', handleImportCsv);
+  // fallback a delega: funziona anche se il bottone viene ricreato
+  document.addEventListener('click', (e)=>{
+    const t = e.target;
+    if(t && t.id === 'importCsv'){ handleImportCsv(); }
+  });
+  $('#demoCsv')?.addEventListener('click',()=>{
+    rows=[];
+    rows.push({desc:'Piattaforma sollevamento PFA50', cost:22500, margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
+    rows.push({desc:'Smontagomme FT26SN',         cost:9750, margin:0, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
+    rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:9880, margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
+    render(); calc();
+  });
+}
 
 // ------- PRINT VIEW (interna/cliente) -------
 function fmtDate(d=new Date()){
@@ -508,11 +550,6 @@ function parseNumber(s){
   if(!s) return 0;
   return Number(String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',', '.'))||0;
 }
-
-/**
- * buildPrintView
- * @param {'internal'|'client'} mode
- */
 function buildPrintView(mode='internal'){
   const pv = $('#printView');
   if(!pv) return;
@@ -550,7 +587,7 @@ function buildPrintView(mode='internal'){
         <td>${img}</td>
         <td>${escapeHtml(r.desc||'')}</td>
         <td class="right">${money(Number(r.cost)||0)}</td>
-        <td class="right">${money(finalUnit)}</td>
+        <td class="right">${money(base)}</td>
         <td class="right">${Number(r.qty)||1}</td>
         <td class="right">${(Number(r.disc)||0).toLocaleString('it-IT')}%</td>
         <td class="right"><b>${money(totaleRiga)}</b></td>
@@ -559,7 +596,7 @@ function buildPrintView(mode='internal'){
       return `<tr>
         <td>${img}</td>
         <td>${escapeHtml(r.desc||'')}</td>
-        <td class="right">${money(finalUnit)}</td>
+        <td class="right">${money(base)}</td>
         <td class="right">${Number(r.qty)||1}</td>
         <td class="right">${(Number(r.disc)||0).toLocaleString('it-IT')}%</td>
         <td class="right"><b>${money(totaleRiga)}</b></td>
@@ -631,19 +668,27 @@ $('#addItem')?.addEventListener('click',()=>addRow());
 $('#saveQuote')?.addEventListener('click',save);
 $('#resetApp')?.addEventListener('click',()=>{ 
   if(confirm('Cancellare tutti i dati locali?')){ 
+    // storage
     localStorage.removeItem(storeKey); 
     localStorage.removeItem(catalogKey);
+    // stato
     rows=[]; 
     catalog=[]; 
-    // reset campi principali
+    // campi principali
     $('#client').value = '';
     $('#email').value = '';
     $('#subject').value = '';
     $('#validDays').value = '30';
     $('#vat').value = 22;
     $('#extra').value = '0';
+    // UI
     render(); 
-    calc(); 
+    calc();
+    // assicurati che gli handler statici siano agganciati
+    bindStaticHandlers();
+    // riga pronta all'uso
+    if(rows.length===0) addRow();
+    toast('Dati azzerati');
   }
 });
 
@@ -657,5 +702,6 @@ document.getElementById('giftBtn')?.addEventListener('click', ()=>{
 document.addEventListener('DOMContentLoaded', ()=>{
   hookModeMirror();
   updateModeUI();
+  bindStaticHandlers();
 });
 load(); if(rows.length===0) addRow();
