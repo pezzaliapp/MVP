@@ -2,78 +2,169 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>README — Preventivo PRO</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>README — Preventivo PRO (PWA)</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:800px;margin:0 auto;padding:80px 16px 40px;line-height:1.6;color:#222}
-    h1,h2,h3{color:#0f172a}
-    code{background:#f1f1f1;padding:2px 5px;border-radius:4px}
-    pre{background:#f8f8f8;padding:12px;border-radius:6px;overflow-x:auto}
-    .topbar{position:fixed;top:0;right:0;left:0;background:#0f172a;padding:12px 16px;display:flex;justify-content:flex-end;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,.2);z-index:9999}
-    .btn{background:#22c55e;border:none;color:#fff;font-weight:600;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:14px}
-    .btn:hover{background:#16a34a}
+    :root{
+      --bg:#0a1228; --ink:#e9f1ff; --muted:#9db0d0;
+      --card:#0f1834; --line:#1a2655; --accent:#2dd36f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    main{max-width:880px;margin:0 auto;padding:32px 20px}
+    h1,h2,h3{font-weight:700}
+    h1{font-size:22px;display:flex;align-items:center;gap:8px}
+    h2{margin-top:28px;font-size:18px;color:var(--accent)}
+    code,pre{background:#111a3c;color:#fff;padding:2px 6px;border-radius:6px;font-size:14px}
+    pre{padding:12px;overflow:auto}
+    a{color:var(--accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    ul{margin:8px 0 8px 20px}
+    hr{border:none;border-top:1px solid var(--line);margin:32px 0}
+    .note{font-size:14px;color:var(--muted)}
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <a class="btn" href="./index.html">👉 Apri App</a>
-  </div>
+<main>
+  <h1>
+    <img src="icons/icon-192.png" alt="Logo" width="32" height="32">
+    Preventivo PRO — Quoting & Margini (PWA)
+  </h1>
 
-  <h1>Preventivo PRO — PWA per preventivi con margini</h1>
-  <p><strong>Preventivo PRO</strong> è una Progressive Web App (PWA) che permette di creare preventivi professionali direttamente dal browser, con calcolo automatico dei margini, gestione sconti e suggeritore prezzi in base a un target di margine medio.
-  Funziona offline, è installabile su smartphone/desktop ed è pensata per venditori e aziende che vogliono semplificare la preventivazione.</p>
+  <p><strong>Preventivo PRO</strong> è una Progressive Web App (PWA) per creare preventivi professionali <strong>direttamente dal browser</strong>.<br>
+  Funziona <strong>offline</strong>, salva i dati in <strong>locale</strong> (LocalStorage) e non richiede alcun server.</p>
 
-  <h2>✨ Funzionalità principali</h2>
+  <hr>
+
+  <h2>Funzionalità</h2>
   <ul>
-    <li>Righe di preventivo con: descrizione, costo, margine %, prezzo netto, quantità, sconto %</li>
-    <li>Calcoli automatici: ricavi netti, margine assoluto, imponibile, totale IVA inclusa</li>
-    <li>Suggeritore prezzi: ottimizza i prezzi netti per raggiungere un <strong>target di margine medio %</strong></li>
-    <li>Import CSV + Demo CSV</li>
-    <li>Salvataggio locale (offline-first, PWA)</li>
-    <li>Stampa/PDF (con watermark in versione Free)</li>
-    <li>Installabile su Android/iOS/Desktop</li>
+    <li><strong>Immagini per riga</strong> (thumbnail ridimensionate automaticamente per stampa/PDF).</li>
+    <li><strong>Modalità prezzo</strong>:
+      <ul>
+        <li><em>Margine</em> → calcolo da margine vero.</li>
+        <li><em>Ricarico</em> → calcolo da ricarico percentuale.</li>
+      </ul>
+    </li>
+    <li><strong>Auto-prezzo</strong> → calcola i prezzi per raggiungere un <em>target di margine medio</em> (post-sconto).</li>
+    <li><strong>Doppia stampa</strong>:
+      <ul>
+        <li><em>Stampa Interna</em> → con costi, ricavi e modalità prezzo.</li>
+        <li><em>Stampa Cliente</em> → senza costi, ricavi e modalità prezzo.</li>
+      </ul>
+    </li>
+    <li><strong>Import CSV</strong> (schema dedicato, vedi sotto).</li>
+    <li><strong>PWA installabile</strong> su desktop e mobile.</li>
+    <li><strong>Omaggio</strong>: link rapido all’app <em>Il Cubo</em>.</li>
   </ul>
 
-  <h2>🆓 Free vs 💼 PRO</h2>
-  <h3>Free</h3>
+  <hr>
+
+  <h2>Omaggio — Il Cubo</h2>
+  <p>All’interno dell’app trovi il pulsante <strong>“🎁 Omaggio: Il Cubo”</strong> che apre l’app dimostrativa
+  <a href="https://www.alessandropezzali.it/KubeApp/" target="_blank">KubeApp (Il Cubo)</a>.</p>
+  <p class="note">È solo un omaggio: non influisce in alcun modo sul funzionamento di Preventivo PRO.</p>
+
+  <hr>
+
+  <h2>Stampa / PDF</h2>
   <ul>
-    <li>1 preventivo salvato</li>
-    <li>Stampa con watermark “DEMO — NON PER USO COMMERCIALE”</li>
+    <li><strong>Stampa Interna</strong> → include Modalità prezzo, Costi, Ricavi netti, Totali.</li>
+    <li><strong>Stampa Cliente</strong> → nasconde Modalità prezzo, Costi, Ricavi netti; mostra Prezzi, Sconti, Totali.</li>
   </ul>
-  <h3>PRO</h3>
-  <ul>
-    <li>Salvataggi illimitati</li>
-    <li>PDF/Stampa senza watermark</li>
-    <li>Branding personalizzato</li>
-    <li>Esportazioni CSV avanzate</li>
-    <li>Supporto e aggiornamenti</li>
-  </ul>
-  <p>La versione PRO si sblocca tramite <strong>Stripe Checkout</strong> (pulsante in-app).</p>
-
-  <h2>📊 Formato CSV atteso</h2>
-  <pre><code>desc,cost,margin,price,qty,disc
-Piattaforma sollevamento PFA50,3200,30,,1,0
-Smontagomme FT26SN,1450,35,,1,5
-Bilanciatrice MEC 200 Truck,2800,28,,1,0</code></pre>
-
-  <h2>🚀 Installazione</h2>
-  <ol>
-    <li>Copia i file su un hosting statico (GitHub Pages, Netlify, dominio personale)</li>
-    <li>Apri <code>index.html</code> nel browser</li>
-    <li>(Opzionale) Aggiungi alla Home come PWA</li>
-  </ol>
-  <p>Per test locale della modalità PRO, puoi aprire <code>index.html?pro=1</code>.</p>
-
-  <h2>📜 Licenza</h2>
-  <p>
-    • La <strong>versione base</strong> di Preventivo PRO è distribuita con licenza <strong>MIT</strong> (vedi <code>LICENSE</code>).<br>
-    • I <strong>moduli PRO</strong> (funzioni premium a pagamento) sono distribuiti con licenza <strong>proprietaria</strong> (vedi <code>LICENSE-PRO</code>).<br>
-    👉 In pratica: puoi usare e condividere liberamente la versione base (MIT), ma le feature PRO restano riservate e protette.
+  <p>Tecnicamente, prima della stampa viene generato HTML pulito dentro <code>#printView</code> e il CSS
+  <code>@media print</code> mostra solo questa sezione.</p>
+  <p><strong>Suggerimenti</strong>:
+    <br>- Desktop: “Stampa → Salva come PDF”.
+    <br>- Mobile: dalla finestra di stampa condividi/esporta PDF.
   </p>
 
-  <h2>👤 Autore</h2>
-  <p><strong>Alessandro Pezzali — pezzaliAPP</strong><br>
-  📧 info@alessandropezzali.it<br>
-  🌐 <a href="https://pezzaliapp.com" target="_blank" rel="noopener">pezzaliapp.com</a></p>
+  <hr>
+
+  <h2>Import CSV</h2>
+  <p>Il pulsante <em>Importa CSV</em> accetta file con separatore <code>,</code> o <code>;</code> e intestazione opzionale.<br>
+  <strong>Ordine delle colonne:</strong></p>
+  <pre>desc, cost, margin, price, qty, disc</pre>
+
+  <p><strong>Significato colonne</strong></p>
+  <ul>
+    <li><code>desc</code> → Descrizione voce</li>
+    <li><code>cost</code> → Costo unitario</li>
+    <li><code>margin</code> → Percentuale margine/ricarico (si interpreta in base alla modalità attiva)</li>
+    <li><code>price</code> → Prezzo netto unitario (se 0 o vuoto viene ricalcolato)</li>
+    <li><code>qty</code> → Quantità</li>
+    <li><code>disc</code> → Sconto % applicato alla riga</li>
+  </ul>
+
+  <p class="note">Le immagini non si importano via CSV (si caricano dalla UI per ogni riga).</p>
+
+  <p><strong>Esempio:</strong></p>
+  <pre>
+desc,cost,margin,price,qty,disc
+"Piattaforma sollevamento PFA50",1000,30,0,1,0
+"Smontagomme FT26SN",1450,35,0,1,5
+"Bilanciatrice MEC 200 Truck",2800,28,0,1,0
+  </pre>
+
+  <hr>
+
+  <h2>Dati & Privacy</h2>
+  <ul>
+    <li>Tutti i dati sono salvati solo nel browser via LocalStorage.</li>
+    <li>Nessun backend o invio a server esterni.</li>
+  </ul>
+  <p><strong>Chiavi LocalStorage utilizzate</strong></p>
+  <ul>
+    <li><code>preventivo.pro.v1</code> → preventivo corrente (campi + righe)</li>
+    <li><code>preventivo.pro.mode</code> → modalità prezzo (margin/markup)</li>
+    <li><code>preventivo.pro.layout</code> → vista tabella/card</li>
+    <li><code>preventivo.pro.donated</code> → *storico legacy*, non più usata</li>
+  </ul>
+
+  <hr>
+
+  <h2>PWA</h2>
+  <ol>
+    <li>Apri l’app nel browser</li>
+    <li>Clicca <em>Aggiungi alla Home / Installa</em></li>
+    <li>L’app sarà disponibile come icona e funzionerà anche offline</li>
+  </ol>
+
+  <hr>
+
+  <h2>Struttura</h2>
+  <ul>
+    <li><code>index.html</code> — layout + stile + script di bootstrap</li>
+    <li><code>app.js</code> — logica: calcoli, CSV, stampa, immagini, link omaggio</li>
+    <li><code>sw.js</code> — service worker per cache offline</li>
+    <li><code>manifest.webmanifest</code> — manifest PWA</li>
+    <li><code>icons/</code> — icone app (192/512)</li>
+  </ul>
+
+  <hr>
+
+  <h2>Troubleshooting</h2>
+  <ul>
+    <li><strong>Stampa vuota</strong> → usa i pulsanti <em>Stampa Interna</em> o <em>Stampa Cliente</em>.</li>
+    <li><strong>CSV non importato</strong> → controlla separatore e ordine colonne.</li>
+    <li><strong>PWA non installabile / aggiornamenti non visibili</strong> → svuota cache e ricarica forzando:
+      <br>- Windows/Linux: <code>Ctrl + Shift + R</code>
+      <br>- macOS: <code>Cmd + Shift + R</code>
+    </li>
+  </ul>
+
+  <hr>
+
+  <h2>Licenza</h2>
+  <p>Distribuito con <strong>licenza MIT</strong>. Vedi il file <a href="./LICENSE">LICENSE</a>.</p>
+
+  <h3>Nota etica di utilizzo</h3>
+  <ul>
+    <li>Mantenere sempre la nota di copyright</li>
+    <li>Citare l’autore originale: <strong>Alessandro Pezzali — pezzaliAPP</strong></li>
+    <li>Segnalare l’uso o le modifiche scrivendo a: <a href="mailto:info@alessandropezzali.it">info@alessandropezzali.it</a></li>
+  </ul>
+  <p class="note">Questa richiesta non modifica i termini della licenza MIT, ma rappresenta un impegno di trasparenza e collaborazione.</p>
+
+</main>
 </body>
 </html>
