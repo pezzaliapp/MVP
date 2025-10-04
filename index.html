@@ -259,7 +259,7 @@
         <div class="section">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
             <div><label>IVA %</label><input id="vat" type="number" value="22"></div>
-       <!-- Colonna destra -->
+     <!-- Colonna destra -->
 <aside class="card">
   <h2>Margini & Totali</h2>
   <div class="section">
@@ -270,23 +270,21 @@
       </div>
       <div>
         <label>Spese (trasporto, installazione)</label>
-        <!-- ora è text: accetta "inclusi", "da definire", ecc. -->
-        <input id="extra" type="text" value="0" placeholder="0 oppure 'inclusi', 'da definire'">
+        <!-- text: accetta "inclusi", "da definire", ecc. -->
+        <input id="extra" type="text" value="0" placeholder="0 oppure 'inclusi'">
       </div>
     </div>
 
-    <div id="sumNetto" class="kpi">0,00 €</div>
-    <div id="sumMargin" class="kpi">0,00 €</div>
-    <div id="sumImponibile" class="kpi">0,00 €</div>
-    <div id="sumTotale" class="kpi">0,00 €</div>
+    <div id="sumNetto">0,00 €</div>
+    <div id="sumMargin">0,00 €</div>
+    <div id="sumImponibile">0,00 €</div>
+    <div id="sumTotale">0,00 €</div>
 
-    <div style="margin-top:12px">
-      <label>Target margine medio %</label>
-      <input id="targetMargin" type="number" value="30">
-      <button id="autoPrice" class="btn">Suggerisci prezzi per target</button>
-    </div>
+    <label>Target margine medio %</label>
+    <input id="targetMargin" type="number" value="30">
+    <button id="autoPrice" class="btn">Suggerisci prezzi per target</button>
 
-    <!-- ✅ Selettore unico Modalità prezzo -->
+    <!-- Selettore unico Modalità prezzo -->
     <div class="pill" style="margin-top:12px">
       <span>Modalità prezzo:</span>
       <select id="modeMirror" class="select">
