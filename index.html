@@ -15,14 +15,11 @@
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      margin:0;
-      font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      margin:0; font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial;
       color:var(--ink);
       background:radial-gradient(1200px 600px at 10% -10%,#162250 0%,#0b1022 40%,#070a16 100%) fixed;
       overflow-x:hidden;
     }
-
-    /* Header / actions */
     header{
       position:sticky; top:0; z-index:10;
       background:rgba(11,16,34,.7); backdrop-filter:blur(8px);
@@ -35,29 +32,16 @@
     .btn:hover{transform:translateY(-1px)}
     .btn-cta{background:var(--cta);border-color:#0e8a43;color:#07120c;font-weight:700}
     .btn-ghost{background:transparent}
-    .select{
-      background:#111834;border:1px solid var(--line);color:var(--ink);
-      padding:8px 10px;border-radius:10px;cursor:pointer
-    }
+    .select{background:#111834;border:1px solid var(--line);color:var(--ink);padding:8px 10px;border-radius:10px;cursor:pointer}
 
-    /* Layout */
     main{max-width:1200px;margin:16px auto;padding:0 12px 110px}
-    .grid{
-      display:grid;
-      grid-template-columns:minmax(560px,1fr) 380px;
-      gap:16px;
-    }
+    .grid{display:grid;grid-template-columns:minmax(560px,1fr) 380px;gap:16px}
     @media(max-width:1100px){ .grid{ grid-template-columns:1fr } }
 
-    .card{
-      background:linear-gradient(180deg,rgba(28,42,85,.4),rgba(17,24,52,.7));
-      border:1px solid var(--line); border-radius:16px;
-      box-shadow:0 6px 22px rgba(0,0,0,.25);
-    }
+    .card{background:linear-gradient(180deg,rgba(28,42,85,.4),rgba(17,24,52,.7));border:1px solid var(--line);border-radius:16px;box-shadow:0 6px 22px rgba(0,0,0,.25)}
     .card h2{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:15px}
     .section{padding:14px 16px}
 
-    /* Form base */
     label{font-size:12px;color:var(--muted)}
     input,select{
       width:100%; padding:9px 11px; margin-top:6px;
@@ -66,7 +50,6 @@
     }
     input:focus,select:focus{ border-color:var(--focus); box-shadow:0 0 0 3px rgba(45,212,191,.12) }
 
-    /* Tabella righe (vista Tabella) */
     table{width:100%; border-collapse:separate; border-spacing:0 8px; table-layout:fixed}
     th{font-size:12px;color:var(--muted);text-align:left;padding:0 8px}
     td{padding:6px 8px; font-size:14px}
@@ -77,7 +60,7 @@
     td.right input{text-align:right}
     .right{text-align:right}
 
-    /* Colonne: Descrizione molto più ampia, numerici compatti */
+    /* colonne */
     .col-img{width:96px}
     .col-desc{width:auto}
     .col-cost{width:92px}
@@ -87,41 +70,35 @@
     .col-disc{width:86px}
     .col-del{width:40px}
 
-    /* Input descrizione leggibile */
-    td input[data-k="desc"]{
-      font-size:14px; padding:8px 10px;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
+    /* descrizione leggibile */
+    td input[data-k="desc"]{font-size:14px;padding:8px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-    /* Numerici: niente spinner */
-    input[type=number]::-webkit-outer-spin-button,
-    input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
-    input[type=number]{ -moz-appearance:textfield; }
+    /* numerici: no spinner */
+    input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+    input[type=number]{-moz-appearance:textfield}
 
-    /* Immagini per riga */
+    /* immagini riga */
     .thumb{width:42px;height:42px;border-radius:8px;border:1px solid var(--line);display:block;object-fit:cover;background:#0f1836}
     .thumb.placeholder{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px}
     .thumbwrap{display:flex;align-items:center;gap:8px}
     .thumb-actions{display:flex;flex-direction:column;gap:4px}
     .thumb-actions .btn{padding:4px 6px;border-radius:6px;font-size:11px}
 
-    /* Totali */
     .muted{color:var(--muted)}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
     .totals{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
 
-    /* Footer */
     footer{position:fixed;bottom:0;left:0;right:0;background:rgba(11,16,34,.85);backdrop-filter:blur(8px);border-top:1px solid var(--line)}
     .foot{max-width:1200px;margin:0 auto;padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:space-between}
     .foot small{color:var(--muted)}
 
-    /* -------- VISTA CARD (mobile-like ma attivabile anche su desktop) -------- */
+    /* -------- VISTA CARD -------- */
     body.layout-cards table thead{display:none}
     body.layout-cards table{border-spacing:0 10px}
     body.layout-cards tr.item{
       display:grid;
-      grid-template-columns: 86px 1fr;      /* img | contenuto */
+      grid-template-columns: 86px 1fr;
       grid-template-areas:
         "img desc"
         "cost cost"
@@ -129,9 +106,7 @@
         "price price"
         "qty disc"
         "del del";
-      gap:10px;
-      padding:12px;
-      border-radius:12px;
+      gap:10px; padding:12px; border-radius:12px;
     }
     body.layout-cards tr.item td{padding:0;border:none;background:transparent}
     body.layout-cards tr.item td:nth-child(1){grid-area:img}
@@ -141,67 +116,65 @@
     body.layout-cards tr.item td:nth-child(5){grid-area:price}
     body.layout-cards tr.item td:nth-child(6){grid-area:qty}
     body.layout-cards tr.item td:nth-child(7){grid-area:disc}
-    body.layout-cards tr.item td:nth-child(8){grid-area:del; text-align:right}
-
-    /* Etichette sopra i campi (fallback statico + attr data-label) */
+    body.layout-cards tr.item td:nth-child(8){grid-area:del;text-align:right}
     body.layout-cards tr.item td:nth-child(n+2):nth-child(-n+7)::before{
-      display:block; color:var(--muted); font-size:12px; margin:0 0 4px;
+      display:block;color:var(--muted);font-size:12px;margin:0 0 4px;
       content: attr(data-label);
     }
-    body.layout-cards tr.item td:nth-child(2)::before{content:attr(data-label, "Descrizione")}
-    body.layout-cards tr.item td:nth-child(3)::before{content:attr(data-label, "Costo")}
-    body.layout-cards tr.item td:nth-child(4)::before{content:attr(data-label, "Margine %")}
-    body.layout-cards tr.item td:nth-child(5)::before{content:attr(data-label, "Prezzo netto")}
-    body.layout-cards tr.item td:nth-child(6)::before{content:attr(data-label, "Q.tà")}
-    body.layout-cards tr.item td:nth-child(7)::before{content:attr(data-label, "Sconto %")}
-
-    /* Input a tutta larghezza e leggibili */
-    body.layout-cards td input{width:100%; font-size:16px; padding:10px 12px; border-radius:10px}
-    body.layout-cards td input[data-k="desc"]{white-space:nowrap; text-overflow:ellipsis; overflow:hidden}
-
-    /* Miniatura + pulsanti più grandi */
+    body.layout-cards td input{width:100%;font-size:16px;padding:10px 12px;border-radius:10px}
+    body.layout-cards td input[data-k="desc"]{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
     body.layout-cards .thumb{width:64px;height:64px}
     body.layout-cards .thumbwrap{gap:8px}
     body.layout-cards .thumb-actions{gap:6px}
-    body.layout-cards .thumb-actions .btn{padding:6px 8px; font-size:12px}
-
-    /* Breakpoint molto piccolo: una colonna sola */
-    @media (max-width: 480px){
+    body.layout-cards .thumb-actions .btn{padding:6px 8px;font-size:12px}
+    @media (max-width:480px){
       body.layout-cards tr.item{
-        grid-template-columns: 1fr;
-        grid-template-areas:
-          "img"
-          "desc"
-          "cost"
-          "margin"
-          "price"
-          "qty"
-          "disc"
-          "del";
+        grid-template-columns:1fr;
+        grid-template-areas:"img" "desc" "cost" "margin" "price" "qty" "disc" "del";
       }
     }
-
-    /* Responsive (compatta bottoni, ecc.) */
-    @media (max-width: 768px){
+    @media (max-width:768px){
       .bar{gap:8px}
-      .btn, .select{padding:7px 10px; border-radius:9px; font-size:14px}
+      .btn,.select{padding:7px 10px;border-radius:9px;font-size:14px}
       h1{font-size:17px}
-      /* footer non fisso su mobile per non coprire i campi */
-      footer{position:static; inset:auto; border-top:1px solid var(--line)}
+      footer{position:static;inset:auto;border-top:1px solid var(--line)}
       main{padding-bottom:24px}
     }
 
-    /* Print */
+    /* PRINT-VIEW: solo layout preventivo */
+    #printView{display:none}
     @media print{
-      header, footer, #resetApp, #unlockPro, #installBtn, #importCsv, #saveQuote, #printBtn, #addItem, [data-del], #viewSelect{ display:none !important; }
-      body{background:white;color:#111}
+      header, footer, main .grid, #resetApp, #unlockPro, #installBtn, #importCsv, #saveQuote, #printBtn, #addItem, [data-del], #viewSelect{ display:none !important; }
+      body{background:#fff!important;color:#111!important;font:13px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
       .card{box-shadow:none;border:1px solid #ddd}
-      .thumb{width:64px;height:64px}
+      #printView{display:block!important;padding:24px}
+      .pv-wrap{max-width:900px;margin:0 auto}
+      .pv-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+      .pv-brand h1{font-size:22px;margin:0 0 4px}
+      .pv-brand small{color:#555}
+      .pv-meta{text-align:right;font-size:12px;color:#444}
+      .pv-meta div{margin-top:2px}
+      .pv-card{border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:14px}
+      .pv-card h2{margin:0 0 8px;font-size:14px;color:#222}
+      .pv-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .pv-field b{display:block;font-size:11px;color:#666}
+      .pv-field span{font-size:13px}
+      table.pv-table{width:100%;border-collapse:collapse;margin-top:6px}
+      table.pv-table th,table.pv-table td{border:1px solid #ddd;padding:6px 8px;vertical-align:top}
+      table.pv-table th{background:#f6f7fb;font-size:12px;text-align:left;color:#333}
+      table.pv-table td.right{text-align:right}
+      .pv-img{width:48px;height:48px;object-fit:cover;border:1px solid #ddd;border-radius:6px}
+      .pv-totals{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+      .pv-kpi{border:1px solid #ddd;border-radius:8px;padding:10px}
+      .pv-kpi b{display:block;color:#666;font-size:11px;margin-bottom:4px}
+      .pv-kpi .val{font-size:16px;font-weight:700}
+      .pv-notes{margin-top:10px;font-size:12px;color:#333}
+      .pv-notes li{margin:4px 0}
       body.free::before{
-        content: "DEMO — NON PER USO COMMERCIALE";
-        position: fixed; top: 35%; left: -10%; transform: rotate(-30deg);
-        font-weight: 800; font-size: 72px; letter-spacing: 2px;
-        color: rgba(239, 68, 68, 0.18); width: 140%; text-align: center; z-index: 9999;
+        content:"DEMO — NON PER USO COMMERCIALE";
+        position:fixed;top:35%;left:-10%;transform:rotate(-30deg);
+        font-weight:800;font-size:72px;letter-spacing:2px;color:rgba(239,68,68,0.18);
+        width:140%;text-align:center;z-index:9999;
       }
     }
   </style>
@@ -211,8 +184,6 @@
     <div class="bar">
       <h1>Preventivo PRO</h1>
       <span class="tag">PWA • Offline</span>
-
-      <!-- Selettore vista -->
       <div style="display:flex;gap:6px;align-items:center">
         <label for="viewSelect" class="tag" style="border:none;padding:0">Vista:</label>
         <select id="viewSelect" class="select">
@@ -220,7 +191,6 @@
           <option value="cards">Card (mobile)</option>
         </select>
       </div>
-
       <button id="installBtn" class="btn btn-ghost" hidden>Aggiungi alla Home</button>
       <div style="flex:1"></div>
       <button class="btn" id="importCsv">Importa CSV</button>
@@ -307,6 +277,7 @@
             <p class="muted" style="margin-top:10px">
               Suggeritore: calcola i prezzi netti per ogni riga per raggiungere il <em>target</em> di margine medio.
             </p>
+            <!-- specchio sola VOCE “Modalità prezzo” (quella buona) -->
             <div class="pill" style="margin-top:12px">
               <span>Modalità prezzo:</span>
               <select id="modeMirror" class="select" disabled style="opacity:.8">
@@ -315,12 +286,12 @@
             </div>
           </div>
         </div>
-           </aside>
+      </aside>
 
-      <!-- ===== PRINT VIEW (nascosta a schermo, visibile solo in stampa) ===== -->
+      <!-- PRINT VIEW (mostrata solo in stampa) -->
       <section id="printView" aria-hidden="true"></section>
 
-    </div> <!-- /.grid -->
+    </div>
   </main>
 
   <footer>
@@ -332,7 +303,7 @@
 
   <script src="./app.js"></script>
 
-  <!-- Switch vista + auto-rilevamento + labels per vista Card -->
+  <!-- Switch vista + auto-detect + data-label per Card -->
   <script>
     (function(){
       const key = 'preventivo.pro.layout';
@@ -341,7 +312,6 @@
       const saved = localStorage.getItem(key);
       const ua = navigator.userAgent || '';
       const looksMobile = /iPhone|Android.+Mobile/.test(ua) || window.innerWidth < 900;
-
       let layout = fromQuery || saved || (looksMobile ? 'cards' : 'table');
 
       function applyLayout(mode){
@@ -349,10 +319,8 @@
         const sel = document.getElementById('viewSelect');
         if(sel) sel.value = mode;
         localStorage.setItem(key, mode);
-        // Aggiorna data-label sui TD per vista Card
         setTimeout(applyDataLabels, 0);
       }
-
       function applyDataLabels(){
         const head = Array.from(document.querySelectorAll('table thead th')).map(th => th.textContent.trim());
         document.querySelectorAll('#items tr.item').forEach(tr=>{
@@ -360,20 +328,12 @@
           tds.forEach((td,idx)=>{ if(head[idx]) td.setAttribute('data-label', head[idx]); });
         });
       }
-
-      // init
       applyLayout(layout);
-
-      // UI select
-      document.getElementById('viewSelect')?.addEventListener('change', (e)=>{
-        applyLayout(e.target.value);
-      });
-
-      // osserva cambi alla tabella (quando aggiungi/elimina righe da app.js)
+      document.getElementById('viewSelect')?.addEventListener('change', e=>applyLayout(e.target.value));
       const obs = new MutationObserver(applyDataLabels);
       obs.observe(document.getElementById('items'), {childList:true, subtree:true});
 
-      // specchio della modalità prezzo (Margine/Ricarico) gestita da app.js
+      // specchio modalità prezzo (legge il TH aggiornato da app.js)
       const thMargin = document.getElementById('thMargin');
       const modeMirror = document.getElementById('modeMirror');
       const syncMode = () => {
