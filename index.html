@@ -144,17 +144,10 @@
     /* PRINT-VIEW: solo layout preventivo */
     #printView{display:none}
     @media print{
-      /* nascondi tutto tranne #printView all'interno della grid */
-      header, footer,
-      main .grid > :not(#printView),
-      #resetApp, #installBtn, #importCsv, #saveQuote, #printBtn, #addItem, [data-del], #viewSelect{ display:none !important; }
-
+      header, footer, main .grid, #resetApp, #installBtn, #importCsv, #saveQuote, #printBtn, #printClientBtn, #printInternalBtn, #addItem, [data-del], #viewSelect{ display:none !important; }
       body{background:#fff!important;color:#111!important;font:13px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
       .card{box-shadow:none;border:1px solid #ddd}
-
-      /* mostra il layout di stampa */
       #printView{display:block!important;padding:24px}
-
       .pv-wrap{max-width:900px;margin:0 auto}
       .pv-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
       .pv-brand h1{font-size:22px;margin:0 0 4px}
@@ -196,7 +189,13 @@
       <div style="flex:1"></div>
       <button class="btn" id="importCsv">Importa CSV</button>
       <button class="btn" id="saveQuote">Salva</button>
-      <button class="btn" id="printBtn">Stampa/PDF</button>
+
+      <!-- Stampa: due opzioni -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn" id="printInternalBtn" title="Stampa completa per uso interno">Stampa Interna</button>
+        <button class="btn" id="printClientBtn"  title="Stampa per cliente (senza costi/ricavi/modalità)">Stampa Cliente</button>
+      </div>
+
       <!-- Donazione -->
       <button class="btn btn-cta" id="donateBtn">Dona ☕︎</button>
     </div>
@@ -334,18 +333,6 @@
       document.getElementById('viewSelect')?.addEventListener('change', e=>applyLayout(e.target.value));
       const obs = new MutationObserver(applyDataLabels);
       obs.observe(document.getElementById('items'), {childList:true, subtree:true});
-
-      // specchio modalità prezzo (legge il TH aggiornato da app.js)
-      const thMargin = document.getElementById('thMargin');
-      const modeMirror = document.getElementById('modeMirror');
-      const syncMode = () => {
-        const txt = (thMargin?.textContent||'Margine %').includes('Ricarico') ? 'Ricarico' : 'Margine';
-        if(modeMirror) modeMirror.value = txt;
-        if(document.body.classList.contains('layout-cards')) applyDataLabels();
-      };
-      const obs2 = new MutationObserver(syncMode);
-      obs2.observe(document.documentElement, {subtree:true, childList:true, characterData:true});
-      syncMode();
     })();
   </script>
 </body>
