@@ -1,178 +1,122 @@
-// app.js — Preventivo PRO (libero/donazione)
-// img per riga + modalità Margine/Ricarico + fix input + auto-prezzo + PRINT VIEW + Donazione
-
+// app.js — Preventivo PRO (immagini riga, margine/ricarico, auto-prezzo, PRINT VIEW, donazioni)
 const $ = sel => document.querySelector(sel);
-const money = v => (v || 0).toLocaleString('it-IT', { style:'currency', currency:'EUR' });
+const money = v => (v||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
 
-// ===== Config Donazione =====
-const PAYPAL_URL = "https://www.paypal.com/paypalme/my/profile"; // il tuo link
-const MIN_DONATION_EUR = 5;
-
-// ===== PWA install =====
+// PWA install
 let deferred;
-window.addEventListener('beforeinstallprompt', e=>{
-  e.preventDefault(); deferred = e;
-  const b = $('#installBtn');
-  if(b){ b.hidden = false; b.onclick = () => deferred.prompt(); }
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferred=e;
+  const b=$('#installBtn'); if(b){ b.hidden=false; b.onclick=()=>deferred.prompt(); }
 });
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); }
 
-// ===== Modalità prezzo (persistita) =====
-// 'margin' = margine vero; 'markup' = ricarico
+// --- Donazioni PayPal ---
+const DONATE_LINK = 'https://paypal.me/pezzalialessandro/5';
+$('#donateBtn')?.addEventListener('click',()=>{ window.open(DONATE_LINK,'_blank','noopener'); });
+
+// --- Stato PRO: rimosso il paywall, lasciamo solo la classe "free" per watermark di stampa se vuoi tenerlo ---
+document.body.classList.remove('free');
+
+// ---- Modalità prezzo: "margin" (margine vero) | "markup" (ricarico) ----
 let pricingMode = localStorage.getItem('preventivo.pro.mode') || 'margin';
 
-// Formule
+// Helpers
 function priceFromMargin(cost, marginPct){
-  const m = (Number(marginPct)||0)/100;
-  const denom = 1 - m;
-  if(denom <= 1e-6) return Number.MAX_SAFE_INTEGER;
-  return +((Number(cost)||0) / denom).toFixed(2);
+  const m=(Number(marginPct)||0)/100, d=1-m;
+  if(d<=0.000001) return Number.MAX_SAFE_INTEGER;
+  return +((Number(cost)||0)/d).toFixed(2);
 }
 function priceFromMarkup(cost, markupPct){
-  const r = (Number(markupPct)||0)/100;
-  return +((Number(cost)||0) * (1+r)).toFixed(2);
+  const r=(Number(markupPct)||0)/100;
+  return +((Number(cost)||0)*(1+r)).toFixed(2);
 }
-function basePrice(cost, pct){
-  return pricingMode==='margin' ? priceFromMargin(cost, pct) : priceFromMarkup(cost, pct);
-}
+function basePrice(cost, pct){ return pricingMode==='margin' ? priceFromMargin(cost,pct) : priceFromMarkup(cost,pct); }
 
-// ===== Image utils =====
+// ---------- Image utils ----------
 function fileToDataURL(file){
-  return new Promise((res,rej)=>{
-    const r = new FileReader();
-    r.onload = () => res(r.result);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
 }
-function resizeDataURL(dataURL, size){ // PNG cover size×size
+function resizeDataURL(dataURL,size){
   return new Promise((res,rej)=>{
-    const img = new Image();
-    img.onload = ()=>{
-      const c = document.createElement('canvas');
-      c.width = size; c.height = size;
-      const ctx = c.getContext('2d');
-      const ratio = Math.max(size/img.width, size/img.height);
-      const w = img.width*ratio, h = img.height*ratio;
-      const x = (size - w)/2, y = (size - h)/2;
-      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size); // sfondo bianco per stampa
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, x, y, w, h);
-      res(c.toDataURL('image/png', 0.92));
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas'); c.width=size; c.height=size;
+      const ctx=c.getContext('2d');
+      const ratio=Math.max(size/img.width,size/img.height);
+      const w=img.width*ratio, h=img.height*ratio;
+      const x=(size-w)/2, y=(size-h)/2;
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,size,size);
+      ctx.imageSmoothingQuality='high';
+      ctx.drawImage(img,x,y,w,h);
+      res(c.toDataURL('image/png',0.92));
     };
-    img.onerror = rej;
-    img.src = dataURL;
+    img.onerror=rej; img.src=dataURL;
   });
 }
 async function processImageFile(file){
-  const data = await fileToDataURL(file);
-  const png192 = await resizeDataURL(data, 192);
-  const png512 = await resizeDataURL(data, 512);
-  return { img192:png192, img512:png512, name:file.name };
+  const data=await fileToDataURL(file);
+  const png192=await resizeDataURL(data,192);
+  const png512=await resizeDataURL(data,512);
+  return {img192:png192,img512:png512,name:file.name};
 }
 
-// ===== Toast minimal =====
-function toast(msg){
-  let t = document.createElement('div');
-  t.textContent = msg;
-  Object.assign(t.style,{
-    position:'fixed',bottom:'16px',left:'50%',transform:'translateX(-50%)',
-    background:'#111834',border:'1px solid #1d2a55',color:'#f1f4ff',
-    padding:'10px 14px',borderRadius:'10px',zIndex:9999,boxShadow:'0 6px 22px rgba(0,0,0,.25)'
-  });
-  document.body.appendChild(t);
-  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; }, 1800);
-  setTimeout(()=> t.remove(), 2300);
-}
-
-// ===== Stato & storage =====
-let rows = [];
-const storeKey = 'preventivo.pro.v1';
+// Stato
+let rows=[];
+const storeKey='preventivo.pro.v1';
 
 function save(){
   localStorage.setItem(storeKey, JSON.stringify({
-    client:$('#client').value,
-    email:$('#email').value,
-    subject:$('#subject').value,
-    validDays:$('#validDays').value,
-    vat:$('#vat').value,
-    extra:$('#extra').value,
-    rows,
-    pricingMode
+    client:$('#client').value,email:$('#email').value,subject:$('#subject').value,
+    validDays:$('#validDays').value,vat:$('#vat').value,extra:$('#extra').value,rows,pricingMode
   }));
-  toast('Salvato');
+  alert('Salvato 👍');
 }
 function load(){
-  const x = JSON.parse(localStorage.getItem(storeKey)||'null'); if(!x) return;
-  $('#client').value = x.client || '';
-  $('#email').value  = x.email  || '';
-  $('#subject').value= x.subject|| '';
-  $('#validDays').value = x.validDays || '30';
-  $('#vat').value = x.vat || 22;
-  $('#extra').value = x.extra || 0;
-  if(x.pricingMode){ pricingMode = x.pricingMode; localStorage.setItem('preventivo.pro.mode', pricingMode); }
-  rows = x.rows || [];
-  render(); calc(); updateModeUI();
+  const x=JSON.parse(localStorage.getItem(storeKey)||'null'); if(!x) return;
+  $('#client').value=x.client||''; $('#email').value=x.email||''; $('#subject').value=x.subject||'';
+  $('#validDays').value=x.validDays||'30'; $('#vat').value=x.vat||22; $('#extra').value=x.extra||0;
+  if(x.pricingMode){ pricingMode=x.pricingMode; localStorage.setItem('preventivo.pro.mode',pricingMode); }
+  rows=x.rows||[]; render(); calc(); updateModeLabel();
 }
 
-// ===== Modalità prezzo: UI (usa SOLO #modeMirror) =====
-function ensureModeMirrorExists(){
-  if($('#modeMirror')) return;
-  const place = document.querySelector('aside.card .section');
-  if(!place) return;
-  const wrap = document.createElement('div');
-  wrap.className = 'pill';
-  wrap.style.marginTop = '12px';
+// UI: selettore modalità (quello “buono” nel pannello a destra)
+function ensureModeSelector(){
+  if($('#modeSelect')) return;
+  const aside=document.querySelector('aside.card .section'); if(!aside) return;
+  const wrap=document.createElement('div');
+  wrap.className='pill'; wrap.style.marginTop='8px';
   wrap.innerHTML = `
-    <span>Modalità prezzo:</span>
-    <select id="modeMirror" class="select">
-      <option>Margine</option>
-      <option>Ricarico</option>
+    <span style="margin-right:8px">Modalità prezzo:</span>
+    <select id="modeSelect" style="background:#0f1836;border:1px solid var(--line);color:var(--ink);padding:6px 10px;border-radius:8px">
+      <option value="margin">Margine</option>
+      <option value="markup">Ricarico</option>
     </select>`;
-  place.appendChild(wrap);
-}
-function updateModeLabel(){
-  const th = document.getElementById('thMargin');
-  if(th) th.textContent = (pricingMode==='margin' ? 'Margine %' : 'Ricarico %');
-}
-function updateModeUI(){
-  updateModeLabel();
-  ensureModeMirrorExists();
-  const sel = $('#modeMirror');
-  if(sel){
-    sel.value = (pricingMode==='margin') ? 'Margine' : 'Ricarico';
-  }
-}
-function hookModeMirror(){
-  ensureModeMirrorExists();
-  const sel = $('#modeMirror');
-  if(!sel) return;
-  sel.addEventListener('change', ()=>{
-    pricingMode = (sel.value==='Ricarico') ? 'markup' : 'margin';
-    localStorage.setItem('preventivo.pro.mode', pricingMode);
-    updateModeUI(); render(); calc();
+  aside.appendChild(wrap);
+  $('#modeSelect').value=pricingMode;
+  $('#modeSelect').addEventListener('change',()=>{
+    pricingMode=$('#modeSelect').value;
+    localStorage.setItem('preventivo.pro.mode',pricingMode);
+    updateModeLabel(); render(); calc();
   });
 }
-
-// ===== Righe =====
-const tbody = $('#items');
-
-function addRow(r={desc:'',cost:0,margin:30,price:0,qty:1,disc:0,img192:null,img512:null,name:null}){
-  rows.push(r); render(); calc();
+function updateModeLabel(){
+  const th=$('#thMargin'); if(th) th.textContent = (pricingMode==='margin'?'Margine %':'Ricarico %');
 }
+
+document.addEventListener('DOMContentLoaded',()=>{ ensureModeSelector(); updateModeLabel(); });
+
+// Righe
+const tbody=$('#items');
+function addRow(r={desc:'',cost:0,margin:30,price:0,qty:1,disc:0,img192:null,img512:null,name:null}){ rows.push(r); render(); calc(); }
 function delRow(i){ rows.splice(i,1); render(); calc(); }
 
 function render(){
-  tbody.innerHTML = '';
+  tbody.innerHTML='';
   rows.forEach((r,i)=>{
-    const computed = basePrice(r.cost, r.margin);
-    const displayPrice = (r.price && r.price>0) ? r.price : computed;
-    const cover = r.img192
-      ? `<img src="${r.img192}" alt="img" class="thumb">`
-      : `<div class="thumb placeholder">📷</div>`;
-    const tr = document.createElement('tr');
-    tr.className='item';
-    tr.innerHTML = `
+    const computed=basePrice(r.cost,r.margin);
+    const displayPrice=(r.price&&r.price>0)?r.price:computed;
+    const cover=r.img192?`<img src="${r.img192}" alt="img" class="thumb">`:`<div class="thumb placeholder">📷</div>`;
+    const tr=document.createElement('tr'); tr.className='item'; tr.innerHTML=`
       <td>
         <div class="thumbwrap">
           ${cover}
@@ -182,164 +126,136 @@ function render(){
           </div>
         </div>
       </td>
-      <td><input data-i="${i}" data-k="desc" value="${r.desc}" placeholder="Voce"/></td>
-      <td class="right"><input data-i="${i}" data-k="cost" type="number" inputmode="decimal" step="0.01" value="${r.cost}"/></td>
-      <td class="right"><input data-i="${i}" data-k="margin" type="number" inputmode="decimal" step="0.1" value="${r.margin}"/></td>
-      <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${displayPrice}"/></td>
-      <td class="right"><input data-i="${i}" data-k="qty" type="number" step="1" value="${r.qty}"/></td>
-      <td class="right"><input data-i="${i}" data-k="disc" type="number" inputmode="decimal" step="0.1" value="${r.disc||0}"/></td>
-      <td><button class="btn" data-del="${i}">×</button></td>
-    `;
+      <td><input data-i="${i}" data-k="desc" value="${r.desc||''}" placeholder="Voce"></td>
+      <td class="right"><input data-i="${i}" data-k="cost" type="number" inputmode="decimal" step="0.01" value="${r.cost}"></td>
+      <td class="right"><input data-i="${i}" data-k="margin" type="number" inputmode="decimal" step="0.1" value="${r.margin}"></td>
+      <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${displayPrice}"></td>
+      <td class="right"><input data-i="${i}" data-k="qty" type="number" step="1" value="${r.qty}"></td>
+      <td class="right"><input data-i="${i}" data-k="disc" type="number" inputmode="decimal" step="0.1" value="${r.disc||0}"></td>
+      <td><button class="btn" data-del="${i}">×</button></td>`;
     tbody.appendChild(tr);
   });
-  updateModeUI();
+  ensureModeSelector(); updateModeLabel();
+  buildPrintView(); // sempre aggiornato
 }
 
-// Input live
-tbody.addEventListener('input', e=>{
-  const el=e.target; const i=+el.dataset.i; const k=el.dataset.k;
+// Input
+tbody.addEventListener('input',e=>{
+  const el=e.target, i=+el.dataset.i, k=el.dataset.k;
   if(!Number.isInteger(i)) return;
-  rows[i][k] = (k==='desc') ? el.value : +el.value;
-
-  if((k==='cost' || k==='margin') && !(rows[i].price>0)){
-    const computed = basePrice(rows[i].cost, rows[i].margin);
-    const priceInput = el.closest('tr').querySelector('input[data-k="price"]');
-    if(priceInput) priceInput.value = computed;
+  rows[i][k]=(k==='desc')?el.value:+el.value;
+  if((k==='cost'||k==='margin') && !(rows[i].price>0)){
+    const computed=basePrice(rows[i].cost,rows[i].margin);
+    const priceInput=el.closest('tr').querySelector('input[data-k="price"]'); if(priceInput) priceInput.value=computed;
   }
   calc();
 });
 
-// Click: delete / upload img / delete img
-tbody.addEventListener('click', async e=>{
-  const del = e.target.dataset.del;
-  if(del!==undefined){ delRow(+del); return; }
-
-  const up = e.target.dataset.img;
-  if(up!==undefined){
-    const idx=+up;
+// Click su righe
+tbody.addEventListener('click',async e=>{
+  const iDel=e.target.dataset.del; if(iDel!==undefined){ delRow(+iDel); return; }
+  const iUp=e.target.dataset.img;
+  if(iUp!==undefined){
+    const idx=+iUp;
     const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
-    inp.onchange=async ()=>{
-      const f=inp.files?.[0]; if(!f) return;
+    inp.onchange=async ()=>{ const f=inp.files?.[0]; if(!f) return;
       try{
-        const {img192,img512,name} = await processImageFile(f);
-        Object.assign(rows[idx], {img192,img512,name});
-        render(); calc();
+        const {img192,img512,name}=await processImageFile(f);
+        Object.assign(rows[idx],{img192,img512,name}); render(); calc();
       }catch(err){ alert('Errore immagine: '+err); }
     };
     inp.click(); return;
   }
-
-  const drop = e.target.dataset.imgDel;
-  if(drop!==undefined){
-    const idx=+drop;
-    Object.assign(rows[idx], {img192:null,img512:null,name:null});
-    render(); calc();
-  }
+  const iDrop=e.target.dataset.imgDel;
+  if(iDrop!==undefined){ const idx=+iDrop; Object.assign(rows[idx],{img192:null,img512:null,name:null}); render(); calc(); }
 });
 
-// ===== Calcoli (margine reale; sconto sul prezzo) =====
+// Calcoli
 function calc(){
-  let ricavi=0, costi=0;
+  let ricavi=0,costi=0;
   rows.forEach(r=>{
-    const base  = r.price>0 ? r.price : basePrice(r.cost,r.margin);
-    const final = base * (1 - ((r.disc||0)/100));
-    const q     = (r.qty||1);
-    ricavi += final * q;
-    costi  += (r.cost||0) * q;
+    const base=r.price>0?r.price:basePrice(r.cost,r.margin);
+    const final=base*(1-((r.disc||0)/100));
+    const q=(r.qty||1);
+    ricavi+=final*q; costi+=(r.cost||0)*q;
   });
-  const extra = +$('#extra').value||0; ricavi += extra;
-
-  const impon = ricavi;
-  const marg  = ricavi - costi;
-  const iva   = impon * ((+$('#vat').value||0)/100);
-  const totale= impon + iva;
-
-  $('#sumNetto').textContent      = money(ricavi);
-  $('#sumMargin').textContent     = money(marg);
-  $('#sumImponibile').textContent = money(impon);
-  $('#sumTotale').textContent     = money(totale);
+  const extra= +$('#extra').value||0; ricavi+=extra;
+  const impon=ricavi;
+  const iva=impon*((+$('#vat').value||0)/100);
+  const totale=impon+iva;
+  const marg=ricavi-costi;
+  $('#sumNetto').textContent=money(ricavi);
+  $('#sumMargin').textContent=money(marg);
+  $('#sumImponibile').textContent=money(impon);
+  $('#sumTotale').textContent=money(totale);
+  buildPrintView(); // rigenera anche qui
 }
 
-// ===== Auto-prezzo (target margine medio) =====
-$('#autoPrice').addEventListener('click', ()=>{
-  const target = (+$('#targetMargin').value||30)/100;
-  const extra  = +$('#extra').value||0;
-
-  const costi = rows.reduce((a,r)=> a + (r.cost||0)*(r.qty||1), 0);
-  const ricaviTarget = costi / (1 - target);
-
-  const ricaviAttualiBase = rows.reduce((a,r)=>{
-    const base = (r.price>0 ? r.price : basePrice(r.cost,r.margin));
-    return a + base * (1 - ((r.disc||0)/100)) * (r.qty||1);
-  }, 0);
-
-  const denom = ricaviAttualiBase || 1;
-  const factor = (ricaviTarget - extra) / denom;
-
-  rows = rows.map(r=>{
-    const base = (r.price>0 ? r.price : basePrice(r.cost,r.margin));
-    return {...r, price: +((base * factor).toFixed(2))};
+// Auto-prezzo su target margine medio
+$('#autoPrice').addEventListener('click',()=>{
+  const target=(+$('#targetMargin').value||30)/100;
+  const extra= +$('#extra').value||0;
+  const costi=rows.reduce((a,r)=>a+(r.cost||0)*(r.qty||1),0);
+  const ricaviTarget=costi/(1-target);
+  const ricaviAttualiBase=rows.reduce((a,r)=>{
+    const base=(r.price>0?r.price:basePrice(r.cost,r.margin));
+    return a+base*(1-((r.disc||0)/100))*(r.qty||1);
+  },0);
+  const denom=ricaviAttualiBase||1;
+  const factor=(ricaviTarget-extra)/denom;
+  rows=rows.map(r=>{
+    const base=(r.price>0?r.price:basePrice(r.cost,r.margin));
+    return {...r,price:+(base*factor).toFixed(2)};
   });
-
   render(); calc();
 });
 
-// Import CSV (desc,cost,margin,price,qty,disc) — immagini non via CSV
+// Import/CSV demo
 $('#importCsv').addEventListener('click',()=>{
   const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv,text/csv';
-  inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; const reader=new FileReader(); reader.onload=()=>{
-    const lines=String(reader.result).split(/\r?\n/).filter(Boolean);
-    rows=[];
-    lines.forEach(line=>{
-      const p=line.split(/;|,/);
-      rows.push({
-        desc:p[0]||'', cost:+(p[1]||0), margin:+(p[2]||30), price:+(p[3]||0),
-        qty:+(p[4]||1), disc:+(p[5]||0), img192:null, img512:null, name:null
+  inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; const reader=new FileReader();
+    reader.onload=()=>{
+      const lines=String(reader.result).split(/\r?\n/).filter(Boolean); rows=[];
+      lines.forEach(line=>{
+        const p=line.split(/;|,/);
+        rows.push({desc:p[0]||'',cost:+(p[1]||0),margin:+(p[2]||30),price:+(p[3]||0),qty:+(p[4]||1),disc:+(p[5]||0),img192:null,img512:null,name:null});
       });
-    });
-    render(); calc();
-  }; reader.readAsText(f); };
+      render(); calc();
+    }; reader.readAsText(f);
+  };
   inp.click();
 });
-
-// Demo CSV
 $('#demoCsv').addEventListener('click',()=>{
-  rows=[];
-  rows.push({desc:'Piattaforma sollevamento PFA50', cost:1000, margin:30, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
-  rows.push({desc:'Smontagomme FT26SN', cost:1450, margin:35, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
-  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:2800, margin:28, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
+  rows=[
+    {desc:'Piattaforma sollevamento PFA50',cost:1000,margin:30,price:0,qty:1,disc:0,img192:null,img512:null,name:null},
+    {desc:'Smontagomme FT26SN',cost:1450,margin:35,price:0,qty:1,disc:5,img192:null,img512:null,name:null},
+    {desc:'Bilanciatrice MEC 200 Truck',cost:2800,margin:28,price:0,qty:1,disc:0,img192:null,img512:null,name:null},
+  ];
   render(); calc();
 });
 
-// ------- PRINT VIEW (costruzione HTML pulito nel #printView prima della stampa) -------
-function fmtDate(d=new Date()){
-  return d.toLocaleDateString('it-IT',{year:'numeric',month:'2-digit',day:'2-digit'});
-}
+// ------- PRINT VIEW -------
+function fmtDate(d=new Date()){ return d.toLocaleDateString('it-IT',{year:'numeric',month:'2-digit',day:'2-digit'}); }
 function parseNumber(s){
-  if(typeof s==='number') return s;
-  if(!s) return 0;
-  return Number(String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',', '.'))||0;
+  if(typeof s==='number') return s; if(!s) return 0;
+  return Number(String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.'))||0;
 }
 function escapeHtml(s){
-  return String(s||'').replace(/[&<>"']/g, m=>({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  })[m]);
+  return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 function buildPrintView(){
-  const pv = $('#printView');
-  if(!pv) return;
+  const pv=$('#printView'); if(!pv) return;
+  const sumNetto=$('#sumNetto').textContent||money(0);
+  const sumImpon=$('#sumImponibile').textContent||money(0);
+  const sumTot=$('#sumTotale').textContent||money(0);
+  const ivaPct=+( $('#vat').value||22 );
+  const extra=+( $('#extra').value||0 );
 
-  const sumNetto = $('#sumNetto').textContent || money(0);
-  const sumImpon = $('#sumImponibile').textContent || money(0);
-  const sumTot   = $('#sumTotale').textContent || money(0);
-  const ivaPct   = +($('#vat').value||22);
-  const extra    = +($('#extra').value||0);
-
-  const rowsHtml = rows.map((r)=>{
-    const base = (r.price>0 ? r.price : basePrice(r.cost,r.margin));
-    const finalUnit = base * (1 - ((r.disc||0)/100));
-    const totaleRiga = finalUnit * (r.qty||1);
-    const img = r.img192 ? `<img src="${r.img192}" class="pv-img" alt="">` : '';
+  const rowsHtml=rows.map(r=>{
+    const base=(r.price>0?r.price:basePrice(r.cost,r.margin));
+    const finalUnit=base*(1-((r.disc||0)/100));
+    const tot=finalUnit*(r.qty||1);
+    const img=r.img192?`<img src="${r.img192}" class="pv-img" alt="">`:'';
     return `<tr>
       <td>${img}</td>
       <td>${escapeHtml(r.desc||'')}</td>
@@ -347,7 +263,7 @@ function buildPrintView(){
       <td class="right">${money(base)}</td>
       <td class="right">${r.qty||1}</td>
       <td class="right">${(r.disc||0).toLocaleString('it-IT')}%</td>
-      <td class="right"><b>${money(totaleRiga)}</b></td>
+      <td class="right"><b>${money(tot)}</b></td>
     </tr>`;
   }).join('');
 
@@ -378,12 +294,9 @@ function buildPrintView(){
       <div class="pv-card">
         <h2>Voci di preventivo</h2>
         <table class="pv-table">
-          <thead>
-            <tr>
-              <th>Img</th><th>Descrizione</th><th>Costi</th><th>Prezzo netto</th>
-              <th>Q.tà</th><th>Sconto %</th><th>Totale riga</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th>Img</th><th>Descrizione</th><th>Costi</th><th>Prezzo netto</th><th>Q.tà</th><th>Sconto %</th><th>Totale riga</th>
+          </tr></thead>
           <tbody>${rowsHtml || `<tr><td colspan="7" style="text-align:center;color:#666">Nessuna voce</td></tr>`}</tbody>
         </table>
       </div>
@@ -391,45 +304,32 @@ function buildPrintView(){
       <div class="pv-totals">
         <div class="pv-kpi"><b>Ricavi netti</b><div class="val">${sumNetto}</div></div>
         <div class="pv-kpi"><b>Totale imponibile</b><div class="val">${sumImpon}</div></div>
-        <div class="pv-kpi"><b>IVA ${ivaPct}% inclusa</b><div class="val">${money(parseNumber(sumTot) - parseNumber(sumImpon))}</div></div>
+        <div class="pv-kpi"><b>IVA ${ivaPct}%</b><div class="val">${money(parseNumber(sumTot)-parseNumber(sumImpon))}</div></div>
         <div class="pv-kpi"><b>Totale IVA inclusa</b><div class="val">${sumTot}</div></div>
       </div>
 
       <ul class="pv-notes">
-        <li>Prezzi al netto di sconto riga. Consegna/trasporto/extra: inclusi in “Spese extra”.</li>
-        <li>Preventivo generato con Preventivo PRO (PWA). Dati salvati localmente nel browser.</li>
+        <li>Prezzi netti dopo eventuali sconti riga. Extra inclusi in “Spese extra”.</li>
+        <li>Documento generato con Preventivo PRO (dati salvati localmente nel tuo browser).</li>
       </ul>
-    </div>
-  `;
+    </div>`;
 }
 
-// PRINT: costruisci layout prima della stampa
-window.addEventListener('beforeprint', buildPrintView);
+// Fallback stampa per Safari/iOS e co.
+if('onbeforeprint' in window){ window.addEventListener('beforeprint', buildPrintView); }
+const mql = window.matchMedia && window.matchMedia('print');
+if(mql && mql.addEventListener){ mql.addEventListener('change', e=>{ if(e.matches) buildPrintView(); }); }
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') buildPrintView(); });
 
-// Pulsanti base
+// UI listeners
 $('#addItem').addEventListener('click',()=>addRow());
-['client','email','subject','validDays','vat','extra'].forEach(id=>{
-  const el=$('#'+id); el.addEventListener('input',()=>{calc();});
-});
+['client','email','subject','validDays','vat','extra'].forEach(id=>{ $('#'+id)?.addEventListener('input',()=>{ calc(); }); });
 $('#saveQuote').addEventListener('click',save);
-$('#resetApp').addEventListener('click',()=>{ 
-  if(confirm('Cancellare tutti i dati locali?')){ 
-    localStorage.removeItem(storeKey); rows=[]; render(); calc(); 
-  }
-});
-$('#printBtn').addEventListener('click',()=>{ buildPrintView(); window.print(); });
+$('#resetApp').addEventListener('click',()=>{ if(confirm('Cancellare tutti i dati locali?')){ localStorage.removeItem(storeKey); rows=[]; render(); calc(); }});
 
-// Donazione
-$('#donateBtn')?.addEventListener('click', ()=>{
-  // suggerimento: donazione a partire da 5€
-  window.open(PAYPAL_URL, '_blank', 'noopener');
-  localStorage.setItem('preventivo.pro.donated','1'); // cosmetico
-  toast('Grazie! Donazione (consigliato ≥ €5)');
-});
+// Bottone stampa: rigenera e poi stampa (piccolo delay per immagini)
+$('#printBtn').addEventListener('click',()=>{ buildPrintView(); setTimeout(()=>window.print(), 100); });
 
 // Init
-document.addEventListener('DOMContentLoaded', ()=>{
-  hookModeMirror();
-  updateModeUI();
-});
+document.addEventListener('DOMContentLoaded', ()=>{ ensureModeSelector(); updateModeLabel(); });
 load(); if(rows.length===0) addRow();
