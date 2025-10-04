@@ -22,7 +22,6 @@ let pricingMode = localStorage.getItem('preventivo.pro.mode') || 'margin';
 
 // ===== Extra (numero o testo) =====
 // Estrae il PRIMO importo nel testo; se non trova importi => 0.
-// Esempi validi: "inclusi", "trasporto 120", "installazione € 75,50", "1.200,50".
 function getExtra(){
   const raw = ($('#extra')?.value ?? '').trim();
   if (!raw) return { amount: 0, label: '0' };
@@ -166,6 +165,16 @@ function hookModeMirror(){
   });
 }
 
+// ===== Helpers per prezzi riga =====
+function unitBase(r){
+  return (Number(r.price)>0 ? Number(r.price) : basePrice(Number(r.cost)||0, Number(r.margin)||0));
+}
+function unitFinal(r){
+  const base = unitBase(r);
+  const d = (Number(r.disc)||0)/100;
+  return +(base * (1 - d)).toFixed(2);
+}
+
 // ===== Righe =====
 const tbody = $('#items');
 
@@ -250,18 +259,16 @@ function selectAC(idx){
   const item = acBox._data?.[idx]; if(!item) return;
   const i = acFor.rowIndex;
 
-  // Scrive la DESCRIZIONE corretta
   rows[i].desc   = item.desc || rows[i].desc;
   rows[i].cost   = Number(item.cost)   || 0;
   rows[i].margin = Number(item.margin) || (rows[i].margin || 0);
-  rows[i].price  = 0; // ricalcolo auto con la modalità corrente
+  rows[i].price  = 0; // lasciare al calcolo auto
 
-  // aggiorna inputs della riga già in DOM
   const tr = acFor.input.closest('tr');
   tr.querySelector('input[data-k="desc"]').value   = rows[i].desc;
   tr.querySelector('input[data-k="cost"]').value   = rows[i].cost;
   tr.querySelector('input[data-k="margin"]').value = rows[i].margin;
-  tr.querySelector('input[data-k="price"]').value  = basePrice(rows[i].cost, rows[i].margin);
+  tr.querySelector('input[data-k="price"]').value  = unitFinal(rows[i]); // mostra subito netto scontato
 
   closeAC(); calc();
 }
@@ -286,8 +293,7 @@ function attachAutocomplete(input, i){
 function render(){
   tbody.innerHTML = '';
   rows.forEach((r,i)=>{
-    const computed = basePrice(Number(r.cost)||0, Number(r.margin)||0);
-    const displayPrice = (Number(r.price)>0) ? Number(r.price) : computed;
+    const displayPrice = unitFinal(r); // sempre netto scontato
 
     const cover = r.img192
       ? `<img src="${r.img192}" alt="img" class="thumb">`
@@ -306,16 +312,15 @@ function render(){
         </div>
       </td>
       <td><input data-i="${i}" data-k="desc" value="${escapeHtml(r.desc)}" placeholder="Voce o cerca nel catalogo…"></td>
-      <td class="right"><input data-i="${i}" data-k="cost" type="number" inputmode="decimal" step="0.01" value="${Number(r.cost)||0}"></td>
-      <td class="right"><input data-i="${i}" data-k="margin" type="number" inputmode="decimal" step="0.1" value="${Number(r.margin)||0}"></td>
-      <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${displayPrice}"></td>
-      <td class="right"><input data-i="${i}" data-k="qty" type="number" step="1" value="${Number(r.qty)||1}"></td>
-      <td class="right"><input data-i="${i}" data-k="disc" type="number" inputmode="decimal" step="0.1" value="${Number(r.disc)||0}"></td>
+      <td class="right"><input data-i="${i}" data-k="cost"   type="number" inputmode="decimal" step="0.01" value="${Number(r.cost)||0}"></td>
+      <td class="right"><input data-i="${i}" data-k="margin" type="number" inputmode="decimal" step="0.1"  value="${Number(r.margin)||0}"></td>
+      <td class="right"><input data-i="${i}" data-k="price"  type="number" inputmode="decimal" step="0.01" value="${displayPrice}"></td>
+      <td class="right"><input data-i="${i}" data-k="qty"    type="number" step="1" value="${Number(r.qty)||1}"></td>
+      <td class="right"><input data-i="${i}" data-k="disc"   type="number" inputmode="decimal" step="0.1"  value="${Number(r.disc)||0}"></td>
       <td><button class="btn" data-del="${i}">×</button></td>
     `;
     tbody.appendChild(tr);
 
-    // attacca l’autocomplete alla descrizione
     attachAutocomplete(tr.querySelector('input[data-k="desc"]'), i);
   });
   updateModeUI();
@@ -335,10 +340,31 @@ tbody.addEventListener('input', e=>{
     rows[i][k] = Number.isFinite(val) ? val : 0;
   }
 
-  if((k==='cost' || k==='margin') && !(Number(rows[i].price)>0)){
-    const priceInput = el.closest('tr').querySelector('input[data-k="price"]');
-    if(priceInput) priceInput.value = basePrice(Number(rows[i].cost)||0, Number(rows[i].margin)||0);
+  // Se cambiano cost/margin e non c'è prezzo forzato, ricalcolo il base;
+  // poi aggiorno il campo prezzo VISUALIZZATO come netto scontato.
+  if(k==='cost' || k==='margin' || k==='disc'){
+    const tr = el.closest('tr');
+    const priceInput = tr.querySelector('input[data-k="price"]');
+    if(k!=='disc' && !(Number(rows[i].price)>0)){
+      // aggiorna il base ma mostriamo netto
+      // (rows[i].price resta 0 => basePrice)
+    }
+    if(priceInput){
+      priceInput.value = unitFinal(rows[i]);
+    }
   }
+
+  // Se l'utente scrive nel campo prezzo, interpreto come PREZZO BASE,
+  // e il campo continua a mostrare il netto dopo sconto alla prossima render/calc.
+  if(k==='price'){
+    // rows[i].price è già aggiornato sopra.
+    const tr = el.closest('tr');
+    const priceInput = tr.querySelector('input[data-k="price"]');
+    if(priceInput){
+      priceInput.value = unitFinal(rows[i]); // mostra subito il netto coerente
+    }
+  }
+
   calc();
 });
 
@@ -376,8 +402,7 @@ tbody.addEventListener('click', async e=>{
 function calc(){
   let ricavi=0, costi=0;
   rows.forEach(r=>{
-    const base  = (Number(r.price)>0 ? Number(r.price) : basePrice(Number(r.cost)||0, Number(r.margin)||0));
-    const final = base * (1 - ((Number(r.disc)||0)/100));
+    const final = unitFinal(r);
     const q     = (Number(r.qty)||1);
     ricavi += final * q;
     costi  += (Number(r.cost)||0) * q;
@@ -405,7 +430,7 @@ $('#autoPrice')?.addEventListener('click', ()=>{
   const ricaviTarget = costi / Math.max(1 - target, 0.0001);
 
   const ricaviAttualiBase = rows.reduce((a,r)=>{
-    const base = (Number(r.price)>0 ? Number(r.price) : basePrice(Number(r.cost)||0, Number(r.margin)||0));
+    const base = unitBase(r);
     return a + base * (1 - ((Number(r.disc)||0)/100)) * (Number(r.qty)||1);
   }, 0);
 
@@ -413,8 +438,8 @@ $('#autoPrice')?.addEventListener('click', ()=>{
   const factor = (ricaviTarget - extra) / denom;
 
   rows = rows.map(r=>{
-    const base = (Number(r.price)>0 ? Number(r.price) : basePrice(Number(r.cost)||0, Number(r.margin)||0));
-    return {...r, price: +((base * factor).toFixed(2))};
+    const base = unitBase(r);
+    return {...r, price: +((base * factor).toFixed(2))}; // prezzo BASE nuovo
   });
 
   render(); calc();
@@ -524,14 +549,11 @@ function handleImportCsv(){
   inp.click();
 }
 
-// binding “statico” + delega di sicurezza
+// binding statico: una sola volta
+let staticBound = false;
 function bindStaticHandlers(){
+  if(staticBound) return;
   $('#importCsv')?.addEventListener('click', handleImportCsv);
-  // fallback a delega: funziona anche se il bottone viene ricreato
-  document.addEventListener('click', (e)=>{
-    const t = e.target;
-    if(t && t.id === 'importCsv'){ handleImportCsv(); }
-  });
   $('#demoCsv')?.addEventListener('click',()=>{
     rows=[];
     rows.push({desc:'Piattaforma sollevamento PFA50', cost:22500, margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
@@ -539,6 +561,7 @@ function bindStaticHandlers(){
     rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:9880, margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
     render(); calc();
   });
+  staticBound = true;
 }
 
 // ------- PRINT VIEW (interna/cliente) -------
@@ -578,8 +601,8 @@ function buildPrintView(mode='internal'){
        </tr>`;
 
   const rowsHtml = rows.map((r)=>{
-    const base = (Number(r.price)>0 ? Number(r.price) : basePrice(Number(r.cost)||0, Number(r.margin)||0));
-    const finalUnit = base * (1 - ((Number(r.disc)||0)/100));
+    const base = unitBase(r);
+    const finalUnit = unitFinal(r);
     const totaleRiga = finalUnit * (Number(r.qty)||1);
     const img = r.img192 ? `<img src="${r.img192}" class="pv-img" alt="">` : '';
     if(mode==='internal'){
@@ -596,7 +619,7 @@ function buildPrintView(mode='internal'){
       return `<tr>
         <td>${img}</td>
         <td>${escapeHtml(r.desc||'')}</td>
-        <td class="right">${money(base)}</td>
+        <td class="right">${money(finalUnit)}</td>
         <td class="right">${Number(r.qty)||1}</td>
         <td class="right">${(Number(r.disc)||0).toLocaleString('it-IT')}%</td>
         <td class="right"><b>${money(totaleRiga)}</b></td>
@@ -668,25 +691,18 @@ $('#addItem')?.addEventListener('click',()=>addRow());
 $('#saveQuote')?.addEventListener('click',save);
 $('#resetApp')?.addEventListener('click',()=>{ 
   if(confirm('Cancellare tutti i dati locali?')){ 
-    // storage
     localStorage.removeItem(storeKey); 
     localStorage.removeItem(catalogKey);
-    // stato
     rows=[]; 
     catalog=[]; 
-    // campi principali
     $('#client').value = '';
     $('#email').value = '';
     $('#subject').value = '';
     $('#validDays').value = '30';
     $('#vat').value = 22;
     $('#extra').value = '0';
-    // UI
     render(); 
     calc();
-    // assicurati che gli handler statici siano agganciati
-    bindStaticHandlers();
-    // riga pronta all'uso
     if(rows.length===0) addRow();
     toast('Dati azzerati');
   }
@@ -702,6 +718,6 @@ document.getElementById('giftBtn')?.addEventListener('click', ()=>{
 document.addEventListener('DOMContentLoaded', ()=>{
   hookModeMirror();
   updateModeUI();
-  bindStaticHandlers();
+  bindStaticHandlers(); // bind una volta sola
 });
 load(); if(rows.length===0) addRow();
