@@ -20,7 +20,15 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); }
 // 'margin' = margine vero; 'markup' = ricarico
 let pricingMode = localStorage.getItem('preventivo.pro.mode') || 'margin';
 
-// Formule
+// ===== Extra (numero o testo) =====
+function getExtra(){
+  const raw = ($('#extra')?.value ?? '').trim();
+  const numeric = /^-?\d+(?:[.,]\d+)?$/.test(raw);
+  const amount = numeric ? parseFloat(raw.replace(',', '.')) : 0;
+  return { amount: isNaN(amount) ? 0 : amount, label: raw || '0' };
+}
+
+// ===== Formule =====
 function priceFromMargin(cost, marginPct){
   const m = (Number(marginPct)||0)/100;
   const denom = 1 - m;
@@ -209,9 +217,9 @@ function updateACList(query){
 
   acBox.innerHTML = list.map((it,idx)=>`
     <div class="ac-item" data-idx="${idx}">
-      <span class="ac-code">${escapeHtml(it.code||'—')}</span>
-      <span class="ac-desc">${escapeHtml(it.desc||'')}</span>
-      <span class="ac-price">${money(+it.cost||0)}</span>
+      <span class="ac-code">${escapeHtml(it.code || '—')}</span>
+      <span class="ac-desc">${escapeHtml(it.desc || '')}</span>
+      <span class="ac-price">${money(+it.cost || 0)}</span>
     </div>
   `).join('');
 
@@ -220,7 +228,7 @@ function updateACList(query){
     el.addEventListener('mousedown', (ev)=>{ ev.preventDefault(); selectAC(+el.dataset.idx); });
   });
 
-  acBox._data = list; // attacca risultati all’elemento
+  acBox._data = list; // risultati correnti
   acIndex = 0; markAC();
 }
 function markAC(){
@@ -232,11 +240,11 @@ function selectAC(idx){
   const item = acBox._data?.[idx]; if(!item) return;
   const i = acFor.rowIndex;
 
+  // Scrive la DESCRIZIONE nel campo giusto, non il costo
   rows[i].desc   = item.desc || rows[i].desc;
-  rows[i].cost   = Number(item.cost)||0;
-  rows[i].margin = Number(item.margin)|| (rows[i].margin||30);
-  // non forziamo il price: lasciamo 0 così si ricalcola dal mode
-  rows[i].price  = 0;
+  rows[i].cost   = Number(item.cost)   || 0;
+  rows[i].margin = Number(item.margin) || (rows[i].margin || 30);
+  rows[i].price  = 0; // lasciare 0 per ricalcolo automatico con la modalità corrente
 
   // aggiorna inputs della riga già in DOM
   const tr = acFor.input.closest('tr');
@@ -303,7 +311,7 @@ function render(){
   updateModeUI();
 }
 
-// Input live
+// ===== Input live =====
 tbody.addEventListener('input', e=>{
   const el = e.target;
   const i  = Number(el.dataset.i);
@@ -324,7 +332,7 @@ tbody.addEventListener('input', e=>{
   calc();
 });
 
-// Click: delete / upload img / delete img
+// ===== Click: delete / upload img / delete img =====
 tbody.addEventListener('click', async e=>{
   const del = e.target.dataset.del;
   if(del!==undefined){ delRow(Number(del)); return; }
@@ -364,7 +372,8 @@ function calc(){
     ricavi += final * q;
     costi  += (Number(r.cost)||0) * q;
   });
-  const extra = Number($('#extra')?.value)||0; ricavi += extra;
+  const extra = getExtra().amount;
+  ricavi += extra;
 
   const impon = ricavi;
   const marg  = ricavi - costi;
@@ -380,7 +389,7 @@ function calc(){
 // ===== Auto-prezzo =====
 $('#autoPrice')?.addEventListener('click', ()=>{
   const target = (Number($('#targetMargin')?.value)||30)/100;
-  const extra  = Number($('#extra')?.value)||0;
+  const extra  = getExtra().amount;
 
   const costi = rows.reduce((a,r)=> a + (Number(r.cost)||0)*(Number(r.qty)||1), 0);
   const ricaviTarget = costi / Math.max(1 - target, 0.0001);
@@ -464,7 +473,10 @@ function buildPrintView(mode='internal'){
   const sumImpon = $('#sumImponibile')?.textContent || money(0);
   const sumTot   = $('#sumTotale')?.textContent || money(0);
   const ivaPct   = +( $('#vat')?.value || 22 );
-  const extra    = +( $('#extra')?.value || 0 );
+  const extraInfo= getExtra();
+  const extraShown = (/^-?\d+(?:[.,]\d+)?$/.test(extraInfo.label))
+    ? money(extraInfo.amount)
+    : escapeHtml(extraInfo.label);
 
   const metaExtraLine = (mode==='internal')
     ? `<div><b>Modalità prezzo:</b> ${pricingMode==='margin'?'Margine':'Ricarico'}</div>`
@@ -531,7 +543,7 @@ function buildPrintView(mode='internal'){
           <div class="pv-field"><b>Cliente</b><span>${escapeHtml($('#client')?.value||'')}</span></div>
           <div class="pv-field"><b>Email</b><span>${escapeHtml($('#email')?.value||'')}</span></div>
           <div class="pv-field"><b>Oggetto</b><span>${escapeHtml($('#subject')?.value||'')}</span></div>
-          <div class="pv-field"><b>Spese extra</b><span>${money(extra)}</span></div>
+          <div class="pv-field"><b>Spese (trasporto, installazione)</b><span>${extraShown}</span></div>
         </div>
       </div>
 
@@ -551,7 +563,7 @@ function buildPrintView(mode='internal'){
       </div>
 
       <ul class="pv-notes">
-        <li>Prezzi al netto di sconto riga. Consegna/trasporto/extra: inclusi in “Spese extra”.</li>
+        <li>Prezzi al netto di sconto riga. Consegna/trasporto/extra: inclusi in “Spese (trasporto, installazione)”.</li>
         <li>Preventivo generato con Preventivo PRO (PWA). Dati salvati localmente nel browser.</li>
       </ul>
     </div>
@@ -564,7 +576,7 @@ $('#printInternalBtn')?.addEventListener('click', ()=>{ lastPrintMode='internal'
 $('#printClientBtn')?.addEventListener('click', ()=>{ lastPrintMode='client';  buildPrintView('client');  window.print(); });
 window.addEventListener('beforeprint', ()=>{ buildPrintView(lastPrintMode || 'internal'); });
 
-// Pulsanti base
+// ===== Pulsanti base =====
 $('#addItem')?.addEventListener('click',()=>addRow());
 ['client','email','subject','validDays','vat','extra'].forEach(id=>{
   const el=$('#'+id); el?.addEventListener('input',()=>{calc();});
@@ -577,13 +589,13 @@ $('#resetApp')?.addEventListener('click',()=>{
   }
 });
 
-// Omaggio: Il Cubo
+// ===== Omaggio: Il Cubo =====
 document.getElementById('giftBtn')?.addEventListener('click', ()=>{
   window.open(GIFT_URL, '_blank', 'noopener');
   toast('🎁 Buon divertimento con Il Cubo!');
 });
 
-// Init
+// ===== Init =====
 document.addEventListener('DOMContentLoaded', ()=>{
   hookModeMirror();
   updateModeUI();
