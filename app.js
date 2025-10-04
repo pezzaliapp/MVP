@@ -1,16 +1,25 @@
-// app.js — Preventivo PRO (img per riga + margine VERO / ricarico + fix input + auto-prezzo)
+// app.js — Preventivo PRO (img per riga + margine VERO / ricarico + fix input + auto-prezzo + PRINT VIEW)
 const $=sel=>document.querySelector(sel);
 const money=v=> (v||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
 
 // PWA install
-let deferred; window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e; const b=$('#installBtn'); if(b){b.hidden=false; b.onclick=()=>deferred.prompt();}});
+let deferred; 
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferred=e; 
+  const b=$('#installBtn'); 
+  if(b){b.hidden=false; b.onclick=()=>deferred.prompt();}
+});
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js');}
 
 // PRO flag (demo): ?pro=1 abilita; persistito
 const urlParams = new URLSearchParams(location.search);
 let pro = urlParams.get('pro')==='1' || localStorage.getItem('preventivo.pro.pro')==='1';
 if(!pro){ document.body.classList.add('free'); } else { document.body.classList.remove('free'); }
-function setPro(v){ pro = !!v; localStorage.setItem('preventivo.pro.pro', pro?'1':'0'); if(!pro){document.body.classList.add('free');} else {document.body.classList.remove('free');} }
+function setPro(v){ 
+  pro = !!v; 
+  localStorage.setItem('preventivo.pro.pro', pro?'1':'0'); 
+  if(!pro){document.body.classList.add('free');} else {document.body.classList.remove('free');} 
+}
 
 // ---- Modalità prezzo: "margin" (margine vero) oppure "markup" (ricarico) ----
 let pricingMode = localStorage.getItem('preventivo.pro.mode') || 'margin'; // 'margin' | 'markup'
@@ -34,7 +43,14 @@ function basePrice(cost, pct){
 }
 
 // ---------- Image utils ----------
-function fileToDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
+function fileToDataURL(file){ 
+  return new Promise((res,rej)=>{ 
+    const r=new FileReader(); 
+    r.onload=()=>res(r.result); 
+    r.onerror=rej; 
+    r.readAsDataURL(file); 
+  }); 
+}
 function resizeDataURL(dataURL, size){ // ritorna PNG dataURL size×size (cover)
   return new Promise((res,rej)=>{
     const img=new Image();
@@ -260,14 +276,122 @@ $('#demoCsv').addEventListener('click',()=>{
   render(); calc();
 });
 
+// ------- PRINT VIEW (costruzione HTML pulito nel #printView prima della stampa) -------
+function fmtDate(d=new Date()){
+  return d.toLocaleDateString('it-IT',{year:'numeric',month:'2-digit',day:'2-digit'});
+}
+function buildPrintView(){
+  const pv = $('#printView');
+  if(!pv) return;
+
+  // totali correnti
+  const sumNetto = $('#sumNetto').textContent || money(0);
+  const sumImpon = $('#sumImponibile').textContent || money(0);
+  const sumTot   = $('#sumTotale').textContent || money(0);
+  const ivaPct   = +($('#vat').value||22);
+  const extra    = +($('#extra').value||0);
+
+  // righe tabellari con ricalcolo netto/sconto/qty
+  const rowsHtml = rows.map((r,idx)=>{
+    const base = (r.price>0 ? r.price : basePrice(r.cost,r.margin));
+    const finalUnit = base * (1 - ((r.disc||0)/100));
+    const totaleRiga = finalUnit * (r.qty||1);
+    const img = r.img192 ? `<img src="${r.img192}" class="pv-img" alt="">` : '';
+    return `<tr>
+      <td>${img}</td>
+      <td>${escapeHtml(r.desc||'')}</td>
+      <td class="right">${money(r.cost||0)}</td>
+      <td class="right">${money(base)}</td>
+      <td class="right">${r.qty||1}</td>
+      <td class="right">${(r.disc||0).toLocaleString('it-IT')}%</td>
+      <td class="right"><b>${money(totaleRiga)}</b></td>
+    </tr>`;
+  }).join('');
+
+  pv.innerHTML = `
+    <div class="pv-wrap">
+      <div class="pv-head">
+        <div class="pv-brand">
+          <h1>Preventivo PRO</h1>
+          <small>PWA — pezzaliAPP</small>
+        </div>
+        <div class="pv-meta">
+          <div><b>Data:</b> ${fmtDate()}</div>
+          <div><b>Validità:</b> ${$('#validDays').value||'—'} giorni</div>
+          <div><b>Modalità prezzo:</b> ${pricingMode==='margin'?'Margine':'Ricarico'}</div>
+        </div>
+      </div>
+
+      <div class="pv-card">
+        <h2>Dati cliente & preventivo</h2>
+        <div class="pv-grid">
+          <div class="pv-field"><b>Cliente</b><span>${escapeHtml($('#client').value||'')}</span></div>
+          <div class="pv-field"><b>Email</b><span>${escapeHtml($('#email').value||'')}</span></div>
+          <div class="pv-field"><b>Oggetto</b><span>${escapeHtml($('#subject').value||'')}</span></div>
+          <div class="pv-field"><b>Spese extra</b><span>${money(extra)}</span></div>
+        </div>
+      </div>
+
+      <div class="pv-card">
+        <h2>Voci di preventivo</h2>
+        <table class="pv-table">
+          <thead>
+            <tr>
+              <th>Img</th><th>Descrizione</th><th>Costi</th><th>Prezzo netto</th>
+              <th>Q.tà</th><th>Sconto %</th><th>Totale riga</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml || `<tr><td colspan="7" style="text-align:center;color:#666">Nessuna voce</td></tr>`}</tbody>
+        </table>
+      </div>
+
+      <div class="pv-totals">
+        <div class="pv-kpi"><b>Ricavi netti</b><div class="val">${sumNetto}</div></div>
+        <div class="pv-kpi"><b>Totale imponibile</b><div class="val">${sumImpon}</div></div>
+        <div class="pv-kpi"><b>IVA ${ivaPct}% inclusa</b><div class="val">${money(parseNumber(sumTot) - parseNumber(sumImpon))}</div></div>
+        <div class="pv-kpi"><b>Totale IVA inclusa</b><div class="val">${sumTot}</div></div>
+      </div>
+
+      <ul class="pv-notes">
+        <li>Prezzi al netto di sconto riga. Consegna/trasporto/extra: inclusi in “Spese extra”.</li>
+        <li>Preventivo generato con Preventivo PRO (PWA). Dati salvati localmente nel browser.</li>
+      </ul>
+    </div>
+  `;
+}
+function parseNumber(s){
+  if(typeof s==='number') return s;
+  if(!s) return 0;
+  // converte "1.234,56 €" -> 1234.56
+  return Number(String(s).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',', '.'))||0;
+}
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[m]);
+}
+
 // UI listeners
 $('#addItem').addEventListener('click',()=>addRow());
 ['client','email','subject','validDays','vat','extra'].forEach(id=>{
   const el=$('#'+id); el.addEventListener('input',()=>{calc();});
 });
 $('#saveQuote').addEventListener('click',save);
-$('#resetApp').addEventListener('click',()=>{ if(confirm('Cancellare tutti i dati locali?')){ localStorage.removeItem(storeKey); rows=[]; render(); calc(); }});
-$('#printBtn').addEventListener('click',()=>{ window.print(); });
+$('#resetApp').addEventListener('click',()=>{ 
+  if(confirm('Cancellare tutti i dati locali?')){ 
+    localStorage.removeItem(storeKey); rows=[]; render(); calc(); 
+  }
+});
+
+// PRINT: costruisci layout prima della stampa
+window.addEventListener('beforeprint', buildPrintView);
+
+// Pulsante stampa
+$('#printBtn').addEventListener('click',()=>{ 
+  buildPrintView(); 
+  window.print(); 
+});
+
 $('#unlockPro').addEventListener('click',()=>{ window.location.href='https://buy.stripe.com/test_1234567890abcdef'; });
 
 // Init
