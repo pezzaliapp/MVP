@@ -1,5 +1,5 @@
 // app.js — Preventivo PRO (libero/donazione)
-// img per riga + modalità Margine/Ricarico + fix input + auto-prezzo + PRINT VIEW + Donazione
+// img per riga + modalità Margine/Ricarico + fix input + auto-prezzo + PRINT VIEW (interna/cliente) + Donazione
 
 const $ = sel => document.querySelector(sel);
 const money = v => (v || 0).toLocaleString('it-IT', { style:'currency', currency:'EUR' });
@@ -81,7 +81,8 @@ function toast(msg){
     padding:'10px 14px',borderRadius:'10px',zIndex:9999,boxShadow:'0 6px 22px rgba(0,0,0,.25)'
   });
   document.body.appendChild(t);
-  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; }, 1800);
+  requestAnimationFrame(()=>{ t.style.transition='opacity .25s'; });
+  setTimeout(()=>{ t.style.opacity='0'; }, 1800);
   setTimeout(()=> t.remove(), 2300);
 }
 
@@ -116,35 +117,18 @@ function load(){
 }
 
 // ===== Modalità prezzo: UI (usa SOLO #modeMirror) =====
-function ensureModeMirrorExists(){
-  if($('#modeMirror')) return;
-  const place = document.querySelector('aside.card .section');
-  if(!place) return;
-  const wrap = document.createElement('div');
-  wrap.className = 'pill';
-  wrap.style.marginTop = '12px';
-  wrap.innerHTML = `
-    <span>Modalità prezzo:</span>
-    <select id="modeMirror" class="select">
-      <option>Margine</option>
-      <option>Ricarico</option>
-    </select>`;
-  place.appendChild(wrap);
-}
 function updateModeLabel(){
   const th = document.getElementById('thMargin');
   if(th) th.textContent = (pricingMode==='margin' ? 'Margine %' : 'Ricarico %');
 }
 function updateModeUI(){
   updateModeLabel();
-  ensureModeMirrorExists();
   const sel = $('#modeMirror');
   if(sel){
     sel.value = (pricingMode==='margin') ? 'Margine' : 'Ricarico';
   }
 }
 function hookModeMirror(){
-  ensureModeMirrorExists();
   const sel = $('#modeMirror');
   if(!sel) return;
   sel.addEventListener('change', ()=>{
@@ -182,7 +166,7 @@ function render(){
           </div>
         </div>
       </td>
-      <td><input data-i="${i}" data-k="desc" value="${r.desc}" placeholder="Voce"/></td>
+      <td><input data-i="${i}" data-k="desc" value="${escapeHtml(r.desc)}" placeholder="Voce"/></td>
       <td class="right"><input data-i="${i}" data-k="cost" type="number" inputmode="decimal" step="0.01" value="${r.cost}"/></td>
       <td class="right"><input data-i="${i}" data-k="margin" type="number" inputmode="decimal" step="0.1" value="${r.margin}"/></td>
       <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${displayPrice}"/></td>
@@ -311,7 +295,7 @@ $('#demoCsv').addEventListener('click',()=>{
   render(); calc();
 });
 
-// ------- PRINT VIEW (costruzione HTML pulito nel #printView prima della stampa) -------
+// ------- PRINT VIEW (interna/cliente) -------
 function fmtDate(d=new Date()){
   return d.toLocaleDateString('it-IT',{year:'numeric',month:'2-digit',day:'2-digit'});
 }
@@ -325,7 +309,12 @@ function escapeHtml(s){
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   })[m]);
 }
-function buildPrintView(){
+
+/**
+ * buildPrintView
+ * @param {'internal'|'client'} mode
+ */
+function buildPrintView(mode='internal'){
   const pv = $('#printView');
   if(!pv) return;
 
@@ -335,21 +324,54 @@ function buildPrintView(){
   const ivaPct   = +($('#vat').value||22);
   const extra    = +($('#extra').value||0);
 
+  // intestazione: in copia cliente nascondo "Modalità prezzo"
+  const metaExtraLine = (mode==='internal')
+    ? `<div><b>Modalità prezzo:</b> ${pricingMode==='margin'?'Margine':'Ricarico'}</div>`
+    : '';
+
+  // colonne tabella: client HIDE "Costi"
+  const thead = (mode==='internal')
+    ? `<tr>
+         <th>Img</th><th>Descrizione</th><th>Costi</th><th>Prezzo netto</th>
+         <th>Q.tà</th><th>Sconto %</th><th>Totale riga</th>
+       </tr>`
+    : `<tr>
+         <th>Img</th><th>Descrizione</th><th>Prezzo netto</th>
+         <th>Q.tà</th><th>Sconto %</th><th>Totale riga</th>
+       </tr>`;
+
   const rowsHtml = rows.map((r)=>{
     const base = (r.price>0 ? r.price : basePrice(r.cost,r.margin));
     const finalUnit = base * (1 - ((r.disc||0)/100));
     const totaleRiga = finalUnit * (r.qty||1);
     const img = r.img192 ? `<img src="${r.img192}" class="pv-img" alt="">` : '';
-    return `<tr>
-      <td>${img}</td>
-      <td>${escapeHtml(r.desc||'')}</td>
-      <td class="right">${money(r.cost||0)}</td>
-      <td class="right">${money(base)}</td>
-      <td class="right">${r.qty||1}</td>
-      <td class="right">${(r.disc||0).toLocaleString('it-IT')}%</td>
-      <td class="right"><b>${money(totaleRiga)}</b></td>
-    </tr>`;
+    if(mode==='internal'){
+      return `<tr>
+        <td>${img}</td>
+        <td>${escapeHtml(r.desc||'')}</td>
+        <td class="right">${money(r.cost||0)}</td>
+        <td class="right">${money(base)}</td>
+        <td class="right">${r.qty||1}</td>
+        <td class="right">${(r.disc||0).toLocaleString('it-IT')}%</td>
+        <td class="right"><b>${money(totaleRiga)}</b></td>
+      </tr>`;
+    }else{
+      // client: senza Costi
+      return `<tr>
+        <td>${img}</td>
+        <td>${escapeHtml(r.desc||'')}</td>
+        <td class="right">${money(base)}</td>
+        <td class="right">${r.qty||1}</td>
+        <td class="right">${(r.disc||0).toLocaleString('it-IT')}%</td>
+        <td class="right"><b>${money(totaleRiga)}</b></td>
+      </tr>`;
+    }
   }).join('');
+
+  // KPI: client HIDE "Ricavi netti"
+  const kpiRicavi = (mode==='internal')
+    ? `<div class="pv-kpi"><b>Ricavi netti</b><div class="val">${sumNetto}</div></div>`
+    : '';
 
   pv.innerHTML = `
     <div class="pv-wrap">
@@ -361,7 +383,7 @@ function buildPrintView(){
         <div class="pv-meta">
           <div><b>Data:</b> ${fmtDate()}</div>
           <div><b>Validità:</b> ${$('#validDays').value||'—'} giorni</div>
-          <div><b>Modalità prezzo:</b> ${pricingMode==='margin'?'Margine':'Ricarico'}</div>
+          ${metaExtraLine}
         </div>
       </div>
 
@@ -378,18 +400,13 @@ function buildPrintView(){
       <div class="pv-card">
         <h2>Voci di preventivo</h2>
         <table class="pv-table">
-          <thead>
-            <tr>
-              <th>Img</th><th>Descrizione</th><th>Costi</th><th>Prezzo netto</th>
-              <th>Q.tà</th><th>Sconto %</th><th>Totale riga</th>
-            </tr>
-          </thead>
-          <tbody>${rowsHtml || `<tr><td colspan="7" style="text-align:center;color:#666">Nessuna voce</td></tr>`}</tbody>
+          <thead>${thead}</thead>
+          <tbody>${rowsHtml || `<tr><td colspan="${mode==='internal'?7:6}" style="text-align:center;color:#666">Nessuna voce</td></tr>`}</tbody>
         </table>
       </div>
 
       <div class="pv-totals">
-        <div class="pv-kpi"><b>Ricavi netti</b><div class="val">${sumNetto}</div></div>
+        ${kpiRicavi}
         <div class="pv-kpi"><b>Totale imponibile</b><div class="val">${sumImpon}</div></div>
         <div class="pv-kpi"><b>IVA ${ivaPct}% inclusa</b><div class="val">${money(parseNumber(sumTot) - parseNumber(sumImpon))}</div></div>
         <div class="pv-kpi"><b>Totale IVA inclusa</b><div class="val">${sumTot}</div></div>
@@ -403,8 +420,15 @@ function buildPrintView(){
   `;
 }
 
-// PRINT: costruisci layout prima della stampa
-window.addEventListener('beforeprint', buildPrintView);
+// ===== Stampa: due pulsanti =====
+$('#printInternalBtn')?.addEventListener('click', ()=>{
+  buildPrintView('internal');
+  window.print();
+});
+$('#printClientBtn')?.addEventListener('click', ()=>{
+  buildPrintView('client');
+  window.print();
+});
 
 // Pulsanti base
 $('#addItem').addEventListener('click',()=>addRow());
@@ -416,12 +440,6 @@ $('#resetApp').addEventListener('click',()=>{
   if(confirm('Cancellare tutti i dati locali?')){ 
     localStorage.removeItem(storeKey); rows=[]; render(); calc(); 
   }
-});
-
-// Pulsante stampa: piccolo delay per permettere il reflow prima del print (iOS/Safari/Chrome)
-$('#printBtn').addEventListener('click',()=>{
-  buildPrintView();
-  requestAnimationFrame(()=> setTimeout(()=> window.print(), 50));
 });
 
 // Donazione
