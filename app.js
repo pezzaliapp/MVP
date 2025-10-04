@@ -1,4 +1,4 @@
-// app.js — Preventivo PRO (UI completa)
+// app.js — Preventivo PRO (UI completa, fix input)
 const $=sel=>document.querySelector(sel);
 const money=v=> (v||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
 
@@ -50,10 +50,23 @@ function render(){ tbody.innerHTML=''; rows.forEach((r,i)=>{
   tbody.appendChild(tr);
 });}
 
+// 🔧 FIX: niente render() ad ogni battuta. Aggiorniamo solo i dati + eventuale prezzo calcolato.
 tbody.addEventListener('input',e=>{
   const el=e.target; const i=+el.dataset.i; const k=el.dataset.k;
-  if(Number.isInteger(i)){ rows[i][k]= (k==='desc')? el.value : +el.value; calc(); render(); }
+  if(!Number.isInteger(i)) return;
+
+  rows[i][k]= (k==='desc')? el.value : +el.value;
+
+  // Se prezzo non impostato manualmente, ricalcola e aggiorna il campo visivo quando cambiano costo/margine
+  if ((k==='cost' || k==='margin') && (!(rows[i].price>0))) {
+    const computed = +(((rows[i].cost||0) * (1 + (rows[i].margin||0)/100)).toFixed(2));
+    const priceInput = el.closest('tr').querySelector('input[data-k="price"]');
+    if (priceInput) priceInput.value = computed;
+  }
+
+  calc(); // aggiorna i totali, senza rifare render()
 });
+
 tbody.addEventListener('click',e=>{ const i=e.target.dataset.del; if(i!==undefined){ delRow(+i); }});
 
 // Calcoli
@@ -85,14 +98,14 @@ $('#autoPrice').addEventListener('click',()=>{
   const ricaviAttuali = rows.reduce((a,r)=> a + ((r.price>0? r.price : r.cost*(1+r.margin/100)) - ((r.price>0? r.price : r.cost*(1+r.margin/100))*(r.disc||0)/100))*(r.qty||1), 0) + (+$('#extra').value||0);
   const factor = (ricaviTarget>0 && ricaviAttuali>0) ? (ricaviTarget/ricaviAttuali) : 1;
   rows = rows.map(r=> ({...r, price: +( (r.price>0? r.price : r.cost*(1+r.margin/100)) * factor ).toFixed(2)}));
-  render(); calc();
+  render(); calc(); // qui sì, serve ridisegnare le righe
 });
 
 // Import CSV (desc,cost,margin,price,qty,disc)
 $('#importCsv').addEventListener('click',()=>{
   const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv,text/csv';
   inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; const reader=new FileReader(); reader.onload=()=>{
-    const lines=String(reader.result).split(/\\r?\\n/).filter(Boolean);
+    const lines=String(reader.result).split(/\r?\n/).filter(Boolean);
     rows=[];
     lines.forEach(line=>{
       const p=line.split(/;|,/);
@@ -122,6 +135,5 @@ $('#resetApp').addEventListener('click',()=>{ if(confirm('Cancellare tutti i dat
 $('#printBtn').addEventListener('click',()=>{ window.print(); });
 $('#unlockPro').addEventListener('click',()=>{ window.location.href='https://buy.stripe.com/test_1234567890abcdef'; });
 
-// SW precache fix per sottocartelle (no-op qui, ma documentato)
 // Init
 load(); if(rows.length===0) addRow();
