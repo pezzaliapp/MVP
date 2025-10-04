@@ -26,28 +26,59 @@
     .section{padding:14px 16px}
     label{font-size:12px;color:var(--muted)}
     input,select{width:100%;padding:10px 12px;margin-top:6px;background:#0f1836;border:1px solid var(--line);border-radius:10px;color:var(--ink)}
-    table{width:100%;border-collapse:separate;border-spacing:0 10px}
+
+    /* ---------- TABELLA: layout fisso e larghezze ---------- */
+    table{width:100%;border-collapse:separate;border-spacing:0 10px;table-layout:fixed}
     th{font-size:12px;color:var(--muted);text-align:left;padding:0 8px}
     td{padding:6px 8px}
     tr.item{background:#0f1836;border:1px solid var(--line)}
     tr.item td:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
     tr.item td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+
+    .col-img{width:132px}   /* miniatura + pulsanti */
+    .col-desc{width:auto}
+    .col-cost{width:160px}
+    .col-margin{width:140px}
+    .col-price{width:170px}
+    .col-qty{width:110px}
+    .col-disc{width:130px}
+    .col-del{width:56px}
+
     .right{text-align:right}
+    td input{width:100%;font-variant-numeric:tabular-nums}
+    td.right input{text-align:right}
+
+    /* Nascondi spinner number */
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+    input[type=number]{ -moz-appearance:textfield; }
+
+    /* --- Immagini per riga --- */
+    .thumb{width:48px;height:48px;border-radius:8px;border:1px solid var(--line);display:block;object-fit:cover;background:#0f1836}
+    .thumb.placeholder{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px}
+    .thumbwrap{display:flex;align-items:center;gap:10px}
+    .thumb-actions{display:flex;flex-direction:column;gap:6px}
+    .thumb-actions .btn{padding:6px 8px;border-radius:8px}
+
     .muted{color:var(--muted)}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
     .totals{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
 
-    /* --- Immagini per riga --- */
-    .thumb{width:48px;height:48px;border-radius:8px;border:1px solid var(--line);display:block;object-fit:cover;background:#0f1836}
-    .thumb.placeholder{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px}
-    .thumbwrap{display:flex;align-items:center;gap:8px}
-    .thumb-actions .btn{padding:6px 8px;border-radius:8px}
-
     footer{position:fixed;bottom:0;left:0;right:0;background:rgba(11,16,34,.85);backdrop-filter:blur(8px);border-top:1px solid var(--line)}
     .foot{max-width:1100px;margin:0 auto;padding:10px 16px;display:flex;gap:8px;align-items:center;justify-content:space-between}
     .foot small{color:var(--muted)}
-    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+    @media(max-width:900px){
+      .grid{grid-template-columns:1fr}
+      .col-img{width:120px}
+      .col-cost{width:140px}
+      .col-margin{width:130px}
+      .col-price{width:150px}
+      .col-qty{width:100px}
+      .col-disc{width:120px}
+    }
+
     /* Print */
     @media print{
       header, footer, #resetApp, #unlockPro, #installBtn, #importCsv, #saveQuote, #printBtn, #addItem, [data-del]{ display:none !important; }
@@ -103,12 +134,18 @@
             </select>
           </div>
         </div>
+
         <div class="section">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <strong>Voci di preventivo</strong>
             <button class="btn" id="addItem">+ Aggiungi riga</button>
           </div>
+
           <table>
+            <colgroup>
+              <col class="col-img"><col class="col-desc"><col class="col-cost"><col class="col-margin">
+              <col class="col-price"><col class="col-qty"><col class="col-disc"><col class="col-del">
+            </colgroup>
             <thead>
               <tr>
                 <th>Img</th>
@@ -123,6 +160,7 @@
             </thead>
             <tbody id="items"></tbody>
           </table>
+
           <div class="pill" style="margin-top:8px"><span>CSV demo:</span><button class="btn btn-ghost" id="demoCsv">carica 3 righe</button></div>
         </div>
       </section>
@@ -167,9 +205,7 @@
   <footer>
     <div class="foot">
       <small>© 2025 pezzaliAPP — MIT • Dati locali nel tuo browser • Versione gratuita limitata a 1 preventivo salvato</small>
-      <div>
-        <button class="btn" id="resetApp">Reset dati</button>
-      </div>
+      <div><button class="btn" id="resetApp">Reset dati</button></div>
     </div>
   </footer>
 
