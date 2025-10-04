@@ -27,15 +27,14 @@ L’app è gratuita. Se vuoi supportarne lo sviluppo, puoi donare a partire da *
 
 Imposta il tuo link PayPal.Me in `app.js`:
 
-```js
-// app.js
+// app.jS
 const PAYPAL_URL = "https://paypal.me/tuoHandle/5"; // precompila 5 €, modificabile dall'utente
 
 L’importo è solo precompilato: il donatore può variarlo prima del pagamento.
 
 ⸻
 
-Stampa / PDF
+## Stampa / PDF
 
 Sono disponibili due pulsanti:
 	•	Stampa Interna (#printInternalBtn)
@@ -52,7 +51,7 @@ Suggerimenti:
 
 ⸻
 
-Import CSV
+## Import CSV
 
 Il pulsante Importa CSV accetta file con separatore , o ; e intestazione opzionale.
 Ordine delle colonne:
@@ -79,7 +78,7 @@ desc,cost,margin,price,qty,disc
 
 ⸻
 
-Dati & Privacy
+## Dati & Privacy
 	•	Tutti i dati sono salvati solo nel browser via LocalStorage.
 	•	Nessun backend o invio a server esterni.
 	•	Donazioni gestite direttamente da PayPal.
@@ -92,14 +91,14 @@ Chiavi LocalStorage utilizzate:
 
 ⸻
 
-PWA
+## PWA
 	1.	Apri l’app nel browser.
 	2.	Clicca Aggiungi alla Home / Installa.
 	3.	L’app sarà disponibile come icona e funzionerà anche offline.
 
 ⸻
 
-Struttura
+## Struttura
 	•	index.html — layout + stile + script di bootstrap.
 	•	app.js — logica: calcoli, CSV, stampa, donazione, immagini.
 	•	sw.js — service worker per cache offline.
@@ -108,7 +107,7 @@ Struttura
 
 ⸻
 
-Troubleshooting
+## Troubleshooting
 	•	Stampa vuota → usa i pulsanti Stampa Interna o Stampa Cliente (riempiono #printView prima di aprire il dialog).
 	•	CSV non importato → controlla separatore e ordine colonne.
 	•	PWA non installabile / aggiornamenti non visibili → svuota cache e ricarica forzando:
@@ -117,6 +116,6 @@ Troubleshooting
 
 ⸻
 
-Licenza
+## Licenza
 
 Distribuito con licenza MIT. Vedi LICENSE.
