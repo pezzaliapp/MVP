@@ -26,7 +26,8 @@
       border-bottom:1px solid var(--line);
     }
     .bar{max-width:1200px;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-    h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
+    h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:8px}
+    .logo{width:22px;height:22px;border-radius:6px;display:inline-block;vertical-align:middle}
     .tag{font-size:12px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
     .btn{appearance:none;border:1px solid var(--line);background:#111834;color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
     .btn:hover{transform:translateY(-1px)}
@@ -144,7 +145,7 @@
     /* PRINT-VIEW: solo layout preventivo */
     #printView{display:none}
     @media print{
-      header, footer, main .grid, #resetApp, #installBtn, #importCsv, #saveQuote, #printBtn, #printClientBtn, #printInternalBtn, #addItem, [data-del], #viewSelect{ display:none !important; }
+      header, footer, main .grid, #resetApp, #installBtn, #importCsv, #saveQuote, #printBtn, #printClientBtn, #printInternalBtn, #giftBtn, #addItem, [data-del], #viewSelect{ display:none !important; }
       body{background:#fff!important;color:#111!important;font:13px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
       .card{box-shadow:none;border:1px solid #ddd}
       #printView{display:block!important;padding:24px}
@@ -176,8 +177,9 @@
 <body>
   <header>
     <div class="bar">
-      <h1>Preventivo PRO</h1>
+      <h1><img src="./icons/icon-192.png" alt="" class="logo">Preventivo PRO</h1>
       <span class="tag">PWA • Offline</span>
+
       <div style="display:flex;gap:6px;align-items:center">
         <label for="viewSelect" class="tag" style="border:none;padding:0">Vista:</label>
         <select id="viewSelect" class="select">
@@ -185,8 +187,14 @@
           <option value="cards">Card (mobile)</option>
         </select>
       </div>
+
       <button id="installBtn" class="btn btn-ghost" hidden>Aggiungi alla Home</button>
       <div style="flex:1"></div>
+
+      <!-- Omaggio -->
+      <button class="btn btn-ghost" id="giftBtn" title="Apri Il Cubo">🎁 Omaggio: Il Cubo</button>
+
+      <!-- Azioni -->
       <button class="btn" id="importCsv">Importa CSV</button>
       <button class="btn" id="saveQuote">Salva</button>
 
@@ -195,9 +203,6 @@
         <button class="btn" id="printInternalBtn" title="Stampa completa per uso interno">Stampa Interna</button>
         <button class="btn" id="printClientBtn"  title="Stampa per cliente (senza costi/ricavi/modalità)">Stampa Cliente</button>
       </div>
-
-      <!-- Donazione -->
-      <button class="btn btn-cta" id="donateBtn">Dona ☕︎</button>
     </div>
   </header>
 
@@ -296,7 +301,7 @@
 
   <footer>
     <div class="foot">
-      <small>© 2025 pezzaliAPP — MIT • Dati locali nel tuo browser • Donazione facoltativa</small>
+      <small>© 2025 pezzaliAPP — MIT • Dati locali nel tuo browser</small>
       <div><button class="btn" id="resetApp">Reset dati</button></div>
     </div>
   </footer>
