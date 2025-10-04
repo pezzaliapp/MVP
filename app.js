@@ -1,8 +1,12 @@
-// app.js — Preventivo PRO (libero)
-// img per riga + modalità Margine/Ricarico + fix input + auto-prezzo + PRINT VIEW
+// app.js — Preventivo PRO (libero/donazione)
+// img per riga + modalità Margine/Ricarico + fix input + auto-prezzo + PRINT VIEW + Donazione
 
 const $ = sel => document.querySelector(sel);
 const money = v => (v || 0).toLocaleString('it-IT', { style:'currency', currency:'EUR' });
+
+// ===== Config Donazione =====
+const PAYPAL_URL = "https://www.paypal.com/paypalme/my/profile"; // il tuo link
+const MIN_DONATION_EUR = 5;
 
 // ===== PWA install =====
 let deferred;
@@ -67,6 +71,20 @@ async function processImageFile(file){
   return { img192:png192, img512:png512, name:file.name };
 }
 
+// ===== Toast minimal =====
+function toast(msg){
+  let t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style,{
+    position:'fixed',bottom:'16px',left:'50%',transform:'translateX(-50%)',
+    background:'#111834',border:'1px solid #1d2a55',color:'#f1f4ff',
+    padding:'10px 14px',borderRadius:'10px',zIndex:9999,boxShadow:'0 6px 22px rgba(0,0,0,.25)'
+  });
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; }, 1800);
+  setTimeout(()=> t.remove(), 2300);
+}
+
 // ===== Stato & storage =====
 let rows = [];
 const storeKey = 'preventivo.pro.v1';
@@ -82,7 +100,7 @@ function save(){
     rows,
     pricingMode
   }));
-  alert('Salvato.');
+  toast('Salvato');
 }
 function load(){
   const x = JSON.parse(localStorage.getItem(storeKey)||'null'); if(!x) return;
@@ -97,20 +115,36 @@ function load(){
   render(); calc(); updateModeUI();
 }
 
-// ===== Modalità prezzo: UI (usa SOLO #modeMirror in index.html) =====
+// ===== Modalità prezzo: UI (usa SOLO #modeMirror) =====
+function ensureModeMirrorExists(){
+  if($('#modeMirror')) return;
+  const place = document.querySelector('aside.card .section');
+  if(!place) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'pill';
+  wrap.style.marginTop = '12px';
+  wrap.innerHTML = `
+    <span>Modalità prezzo:</span>
+    <select id="modeMirror" class="select">
+      <option>Margine</option>
+      <option>Ricarico</option>
+    </select>`;
+  place.appendChild(wrap);
+}
 function updateModeLabel(){
   const th = document.getElementById('thMargin');
   if(th) th.textContent = (pricingMode==='margin' ? 'Margine %' : 'Ricarico %');
 }
 function updateModeUI(){
   updateModeLabel();
+  ensureModeMirrorExists();
   const sel = $('#modeMirror');
   if(sel){
-    sel.disabled = false; // lo rendiamo interattivo
     sel.value = (pricingMode==='margin') ? 'Margine' : 'Ricarico';
   }
 }
 function hookModeMirror(){
+  ensureModeMirrorExists();
   const sel = $('#modeMirror');
   if(!sel) return;
   sel.addEventListener('change', ()=>{
@@ -244,46 +278,40 @@ $('#autoPrice').addEventListener('click', ()=>{
 
   rows = rows.map(r=>{
     const base = (r.price>0 ? r.price : basePrice(r.cost,r.margin));
-    return {...r, price:+(base * factor).toFixed(2)};
+    return {...r, price: +((base * factor).toFixed(2))};
   });
 
   render(); calc();
 });
 
-// ===== Import CSV (desc,cost,margin,price,qty,disc) =====
-$('#importCsv').addEventListener('click', ()=>{
+// Import CSV (desc,cost,margin,price,qty,disc) — immagini non via CSV
+$('#importCsv').addEventListener('click',()=>{
   const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv,text/csv';
-  inp.onchange=()=>{
-    const f=inp.files[0]; if(!f) return;
-    const reader=new FileReader();
-    reader.onload=()=>{
-      const lines=String(reader.result).split(/\r?\n/).filter(Boolean);
-      rows=[];
-      lines.forEach(line=>{
-        const p=line.split(/;|,/);
-        rows.push({
-          desc:p[0]||'', cost:+(p[1]||0), margin:+(p[2]||30), price:+(p[3]||0),
-          qty:+(p[4]||1), disc:+(p[5]||0), img192:null, img512:null, name:null
-        });
+  inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; const reader=new FileReader(); reader.onload=()=>{
+    const lines=String(reader.result).split(/\r?\n/).filter(Boolean);
+    rows=[];
+    lines.forEach(line=>{
+      const p=line.split(/;|,/);
+      rows.push({
+        desc:p[0]||'', cost:+(p[1]||0), margin:+(p[2]||30), price:+(p[3]||0),
+        qty:+(p[4]||1), disc:+(p[5]||0), img192:null, img512:null, name:null
       });
-      render(); calc();
-    };
-    reader.readAsText(f);
-  };
+    });
+    render(); calc();
+  }; reader.readAsText(f); };
   inp.click();
 });
 
-// ===== Demo CSV =====
-$('#demoCsv').addEventListener('click', ()=>{
-  rows = [
-    {desc:'Piattaforma sollevamento PFA50', cost:1000, margin:30, price:0, qty:1, disc:0, img192:null,img512:null,name:null},
-    {desc:'Smontagomme FT26SN',           cost:1450, margin:35, price:0, qty:1, disc:5, img192:null,img512:null,name:null},
-    {desc:'Bilanciatrice MEC 200 Truck',  cost:2800, margin:28, price:0, qty:1, disc:0, img192:null,img512:null,name:null},
-  ];
+// Demo CSV
+$('#demoCsv').addEventListener('click',()=>{
+  rows=[];
+  rows.push({desc:'Piattaforma sollevamento PFA50', cost:1000, margin:30, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
+  rows.push({desc:'Smontagomme FT26SN', cost:1450, margin:35, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
+  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:2800, margin:28, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
   render(); calc();
 });
 
-// ===== PRINT VIEW (costruzione HTML pulito nel #printView) =====
+// ------- PRINT VIEW (costruzione HTML pulito nel #printView prima della stampa) -------
 function fmtDate(d=new Date()){
   return d.toLocaleDateString('it-IT',{year:'numeric',month:'2-digit',day:'2-digit'});
 }
@@ -298,7 +326,8 @@ function escapeHtml(s){
   })[m]);
 }
 function buildPrintView(){
-  const pv = $('#printView'); if(!pv) return;
+  const pv = $('#printView');
+  if(!pv) return;
 
   const sumNetto = $('#sumNetto').textContent || money(0);
   const sumImpon = $('#sumImponibile').textContent || money(0);
@@ -306,7 +335,7 @@ function buildPrintView(){
   const ivaPct   = +($('#vat').value||22);
   const extra    = +($('#extra').value||0);
 
-  const rowsHtml = rows.map(r=>{
+  const rowsHtml = rows.map((r)=>{
     const base = (r.price>0 ? r.price : basePrice(r.cost,r.margin));
     const finalUnit = base * (1 - ((r.disc||0)/100));
     const totaleRiga = finalUnit * (r.qty||1);
@@ -362,38 +391,45 @@ function buildPrintView(){
       <div class="pv-totals">
         <div class="pv-kpi"><b>Ricavi netti</b><div class="val">${sumNetto}</div></div>
         <div class="pv-kpi"><b>Totale imponibile</b><div class="val">${sumImpon}</div></div>
-        <div class="pv-kpi"><b>IVA ${ivaPct}% inclusa</b><div class="val">${money(parseNumber(sumTot)-parseNumber(sumImpon))}</div></div>
+        <div class="pv-kpi"><b>IVA ${ivaPct}% inclusa</b><div class="val">${money(parseNumber(sumTot) - parseNumber(sumImpon))}</div></div>
         <div class="pv-kpi"><b>Totale IVA inclusa</b><div class="val">${sumTot}</div></div>
       </div>
 
       <ul class="pv-notes">
-        <li>Prezzi al netto degli sconti riga. Eventuali spese/trasporto incluse nel rigo “Spese extra”.</li>
+        <li>Prezzi al netto di sconto riga. Consegna/trasporto/extra: inclusi in “Spese extra”.</li>
         <li>Preventivo generato con Preventivo PRO (PWA). Dati salvati localmente nel browser.</li>
       </ul>
     </div>
   `;
 }
 
-// ===== Azioni generali =====
-$('#addItem').addEventListener('click', ()=>addRow());
+// PRINT: costruisci layout prima della stampa
+window.addEventListener('beforeprint', buildPrintView);
+
+// Pulsanti base
+$('#addItem').addEventListener('click',()=>addRow());
 ['client','email','subject','validDays','vat','extra'].forEach(id=>{
-  $('#'+id).addEventListener('input', ()=>{ calc(); });
+  const el=$('#'+id); el.addEventListener('input',()=>{calc();});
 });
-$('#saveQuote').addEventListener('click', save);
-$('#resetApp').addEventListener('click', ()=>{
-  if(confirm('Cancellare tutti i dati locali?')){
-    localStorage.removeItem(storeKey); rows=[]; render(); calc();
+$('#saveQuote').addEventListener('click',save);
+$('#resetApp').addEventListener('click',()=>{ 
+  if(confirm('Cancellare tutti i dati locali?')){ 
+    localStorage.removeItem(storeKey); rows=[]; render(); calc(); 
   }
 });
+$('#printBtn').addEventListener('click',()=>{ buildPrintView(); window.print(); });
 
-// Stampa: costruisci la print view prima di stampare
-window.addEventListener('beforeprint', buildPrintView);
-$('#printBtn').addEventListener('click', ()=>{ buildPrintView(); window.print(); });
+// Donazione
+$('#donateBtn')?.addEventListener('click', ()=>{
+  // suggerimento: donazione a partire da 5€
+  window.open(PAYPAL_URL, '_blank', 'noopener');
+  localStorage.setItem('preventivo.pro.donated','1'); // cosmetico
+  toast('Grazie! Donazione (consigliato ≥ €5)');
+});
 
-// ===== Init =====
+// Init
 document.addEventListener('DOMContentLoaded', ()=>{
   hookModeMirror();
   updateModeUI();
 });
-load();
-if(rows.length===0) addRow();
+load(); if(rows.length===0) addRow();
