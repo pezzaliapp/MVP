@@ -290,9 +290,9 @@ $('#importCsv').addEventListener('click',()=>{
 // Demo CSV
 $('#demoCsv').addEventListener('click',()=>{
   rows=[];
-  rows.push({desc:'Piattaforma sollevamento PFA50', cost:1000, margin:30, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
-  rows.push({desc:'Smontagomme FT26SN', cost:1450, margin:35, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
-  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:2800, margin:28, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
+  rows.push({desc:'Piattaforma sollevamento PFA50', cost:9900, margin:30, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
+  rows.push({desc:'Smontagomme FT26SN', cost:3900, margin:35, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
+  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:3950, margin:28, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
   render(); calc();
 });
 
