@@ -417,11 +417,15 @@ $('#resetApp').addEventListener('click',()=>{
     localStorage.removeItem(storeKey); rows=[]; render(); calc(); 
   }
 });
-$('#printBtn').addEventListener('click',()=>{ buildPrintView(); window.print(); });
+
+// Pulsante stampa: piccolo delay per permettere il reflow prima del print (iOS/Safari/Chrome)
+$('#printBtn').addEventListener('click',()=>{
+  buildPrintView();
+  requestAnimationFrame(()=> setTimeout(()=> window.print(), 50));
+});
 
 // Donazione
 $('#donateBtn')?.addEventListener('click', ()=>{
-  // suggerimento: donazione a partire da 5€
   window.open(PAYPAL_URL, '_blank', 'noopener');
   localStorage.setItem('preventivo.pro.donated','1'); // cosmetico
   toast('Grazie! Donazione (consigliato ≥ €5)');
