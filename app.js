@@ -21,11 +21,24 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); }
 let pricingMode = localStorage.getItem('preventivo.pro.mode') || 'margin';
 
 // ===== Extra (numero o testo) =====
+// Accetta: "inclusi", "da definire", "trasporto 120", "installazione € 75,50", ecc.
+// Se trova un numero nel testo, lo usa nei conteggi; altrimenti 0.
 function getExtra(){
   const raw = ($('#extra')?.value ?? '').trim();
-  const numeric = /^-?\d+(?:[.,]\d+)?$/.test(raw);
-  const amount = numeric ? parseFloat(raw.replace(',', '.')) : 0;
-  return { amount: isNaN(amount) ? 0 : amount, label: raw || '0' };
+
+  // cerca la PRIMA occorrenza numerica nel testo (anche con virgola)
+  const m = raw.match(/-?\d+(?:[.,]\d+)?/);
+
+  let amount = 0;
+  if (m) {
+    amount = parseFloat(m[0].replace(',', '.'));
+    if (isNaN(amount)) amount = 0;
+  }
+
+  return {
+    amount,        // usato nei conteggi
+    label: raw || '0'  // mostrato in stampa così com’è
+  };
 }
 
 // ===== Formule =====
