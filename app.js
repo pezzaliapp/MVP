@@ -421,29 +421,6 @@ function calc(){
   $('#sumTotale').textContent     = money(totale);
 }
 
-// ===== Auto-prezzo =====
-$('#autoPrice')?.addEventListener('click', ()=>{
-  const target = (Number($('#targetMargin')?.value)||30)/100;
-  const extra  = getExtra().amount;
-
-  const costi = rows.reduce((a,r)=> a + (Number(r.cost)||0)*(Number(r.qty)||1), 0);
-  const ricaviTarget = costi / Math.max(1 - target, 0.0001);
-
-  const ricaviAttualiBase = rows.reduce((a,r)=>{
-    const base = unitBase(r);
-    return a + base * (1 - ((Number(r.disc)||0)/100)) * (Number(r.qty)||1);
-  }, 0);
-
-  const denom = ricaviAttualiBase || 1;
-  const factor = (ricaviTarget - extra) / denom;
-
-  rows = rows.map(r=>{
-    const base = unitBase(r);
-    return {...r, price: +((base * factor).toFixed(2))}; // prezzo BASE nuovo
-  });
-
-  render(); calc();
-});
 
 // ===== CSV ROBUSTO =====
 function detectSeparator(line){
