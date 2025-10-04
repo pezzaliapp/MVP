@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>README — Preventivo PRO</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:800px;margin:0 auto;padding:80px 16px 40px;line-height:1.6;color:#222}
+    h1,h2,h3{color:#0f172a}
+    code{background:#f1f1f1;padding:2px 5px;border-radius:4px}
+    pre{background:#f8f8f8;padding:12px;border-radius:6px;overflow-x:auto}
+    .topbar{position:fixed;top:0;right:0;left:0;background:#0f172a;padding:12px 16px;display:flex;justify-content:flex-end;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,.2);z-index:9999}
+    .btn{background:#22c55e;border:none;color:#fff;font-weight:600;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:14px}
+    .btn:hover{background:#16a34a}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a class="btn" href="./index.html">👉 Apri App</a>
+  </div>
+
+  <h1>Preventivo PRO — PWA per preventivi con margini</h1>
+  <p><strong>Preventivo PRO</strong> è una Progressive Web App (PWA) che permette di creare preventivi professionali direttamente dal browser, con calcolo automatico dei margini, gestione sconti e suggeritore prezzi in base a un target di margine medio.
+  Funziona offline, è installabile su smartphone/desktop ed è pensata per venditori e aziende che vogliono semplificare la preventivazione.</p>
+
+  <h2>✨ Funzionalità principali</h2>
+  <ul>
+    <li>Righe di preventivo con: descrizione, costo, margine %, prezzo netto, quantità, sconto %</li>
+    <li>Calcoli automatici: ricavi netti, margine assoluto, imponibile, totale IVA inclusa</li>
+    <li>Suggeritore prezzi: ottimizza i prezzi netti per raggiungere un <strong>target di margine medio %</strong></li>
+    <li>Import CSV + Demo CSV</li>
+    <li>Salvataggio locale (offline-first, PWA)</li>
+    <li>Stampa/PDF (con watermark in versione Free)</li>
+    <li>Installabile su Android/iOS/Desktop</li>
+  </ul>
+
+  <h2>🆓 Free vs 💼 PRO</h2>
+  <h3>Free</h3>
+  <ul>
+    <li>1 preventivo salvato</li>
+    <li>Stampa con watermark “DEMO — NON PER USO COMMERCIALE”</li>
+  </ul>
+  <h3>PRO</h3>
+  <ul>
+    <li>Salvataggi illimitati</li>
+    <li>PDF/Stampa senza watermark</li>
+    <li>Branding personalizzato</li>
+    <li>Esportazioni CSV avanzate</li>
+    <li>Supporto e aggiornamenti</li>
+  </ul>
+  <p>La versione PRO si sblocca tramite <strong>Stripe Checkout</strong> (pulsante in-app).</p>
+
+  <h2>📊 Formato CSV atteso</h2>
+  <pre><code>desc,cost,margin,price,qty,disc
+Piattaforma sollevamento PFA50,3200,30,,1,0
+Smontagomme FT26SN,1450,35,,1,5
+Bilanciatrice MEC 200 Truck,2800,28,,1,0</code></pre>
+
+  <h2>🚀 Installazione</h2>
+  <ol>
+    <li>Copia i file su un hosting statico (GitHub Pages, Netlify, dominio personale)</li>
+    <li>Apri <code>index.html</code> nel browser</li>
+    <li>(Opzionale) Aggiungi alla Home come PWA</li>
+  </ol>
+  <p>Per test locale della modalità PRO, puoi aprire <code>index.html?pro=1</code>.</p>
+
+  <h2>📜 Licenza</h2>
+  <p>
+    • La <strong>versione base</strong> di Preventivo PRO è distribuita con licenza <strong>MIT</strong> (vedi <code>LICENSE</code>).<br>
+    • I <strong>moduli PRO</strong> (funzioni premium a pagamento) sono distribuiti con licenza <strong>proprietaria</strong> (vedi <code>LICENSE-PRO</code>).<br>
+    👉 In pratica: puoi usare e condividere liberamente la versione base (MIT), ma le feature PRO restano riservate e protette.
+  </p>
+
+  <h2>👤 Autore</h2>
+  <p><strong>Alessandro Pezzali — pezzaliAPP</strong><br>
+  📧 info@alessandropezzali.it<br>
+  🌐 <a href="https://pezzaliapp.com" target="_blank" rel="noopener">pezzaliapp.com</a></p>
+</body>
+</html>
