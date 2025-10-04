@@ -118,4 +118,8 @@ Chiavi LocalStorage utilizzate:
 
 ## Licenza
 
-Distribuito con licenza MIT. Vedi LICENSE.
+Questo progetto è rilasciato con **licenza MIT**, che ne consente l’uso, la modifica e la redistribuzione, anche per fini commerciali, purché venga sempre mantenuta la nota di copyright e la stessa licenza.  
+
+⚖️ La versione MIT garantisce libertà d’uso, ma tutela anche l’autore tramite l’obbligo di attribuzione e l’esclusione di responsabilità.  
+
+Per i dettagli completi consulta il file [LICENSE](./LICENSE).
