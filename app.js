@@ -577,7 +577,7 @@ function buildPrintView(mode='internal'){ // 'internal' | 'client'
       </div>
 
       <ul class="pv-notes">
-        <li>Prezzi al netto di sconto riga. Consegna/trasporto/extra: inclusi in “Spese (trasporto, installazione)”.</li>
+       
         <li>Preventivo generato con Preventivo PRO (PWA). Dati salvati localmente nel browser.</li>
       </ul>
     </div>
