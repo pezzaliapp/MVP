@@ -420,14 +420,21 @@ function buildPrintView(mode='internal'){
   `;
 }
 
-// ===== Stampa: due pulsanti =====
+// ===== Stampa: due pulsanti + fallback scorciatoia =====
+let lastPrintMode = 'internal'; // default
 $('#printInternalBtn')?.addEventListener('click', ()=>{
+  lastPrintMode = 'internal';
   buildPrintView('internal');
   window.print();
 });
 $('#printClientBtn')?.addEventListener('click', ()=>{
+  lastPrintMode = 'client';
   buildPrintView('client');
   window.print();
+});
+// se l’utente usa direttamente Cmd/Ctrl+P:
+window.addEventListener('beforeprint', ()=>{
+  buildPrintView(lastPrintMode || 'internal');
 });
 
 // Pulsanti base
