@@ -1,5 +1,6 @@
 // app.js — Preventivo PRO (gratuito con omaggio)
 // img per riga + modalità Margine/Ricarico + auto-prezzo + PRINT VIEW (interna/cliente) + CATALOGO con ricerca
+// Prezzo netto in tabella e stampa = prezzo unitario POST-SCONTO
 
 const $ = sel => document.querySelector(sel);
 const money = v => (v || 0).toLocaleString('it-IT', { style:'currency', currency:'EUR' });
@@ -21,45 +22,27 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); }
 let pricingMode = localStorage.getItem('preventivo.pro.mode') || 'margin';
 
 // ===== Extra (numero o testo) =====
-// Estrae il PRIMO importo presente nel testo, accettando:
-// - separatori migliaia con punti o spazi (anche NBSP)
-// - decimali con virgola o punto
-// - simboli valuta sparsi
-// Se non trova numeri => amount = 0. label resta il testo originale.
+// Estrae il PRIMO importo presente nel testo (1.200,50 | 1200.50 | "trasporto € 75,50", ecc.)
+// Se non trova numeri => amount=0. label = testo originale.
 function getExtra(){
   const raw = ($('#extra')?.value ?? '').trim();
   if (!raw) return { amount: 0, label: '0' };
 
-  // match robusto tipo EUR: "1.200,50" | "1200.50" | "1 200,50" | "-75,5" | "120"
   const m = raw.match(/[-+]?\d{1,3}(?:[.\s\u00A0]\d{3})*(?:[.,]\d+)?|[-+]?\d+(?:[.,]\d+)?/);
-
   let amount = 0;
   if (m) {
-    let s = m[0];
-
-    // Tieni solo cifre, segni e separatori , .
-    s = s.replace(/[^\d.,\-+]/g, '');
-
-    // Caso con sia . che , => in EU di solito . = migliaia, , = decimali
+    let s = m[0].replace(/[^\d.,\-+]/g, '');
     if (s.includes('.') && s.includes(',')) {
       s = s.replace(/\./g, '').replace(',', '.'); // "1.234,56" -> "1234.56"
     } else if (s.includes(',')) {
-      // Solo virgola => trattala come decimale
-      s = s.replace(',', '.'); // "75,5" -> "75.5"
-    } else {
-      // Solo punto o solo cifre -> già OK (il punto può essere decimale o migliaia senza virgola: accettiamo come decimale)
-      // Se volessi forzare il punto come migliaia (raro), potresti rimuovere i punti quando non ci sono decimali.
+      s = s.replace(',', '.');
     }
-
     const n = parseFloat(s);
     amount = Number.isFinite(n) ? n : 0;
   }
-
-  return {
-    amount,       // usato nei conteggi
-    label: raw    // mostrato in stampa così com’è
-  };
+  return { amount, label: raw };
 }
+
 // ===== Formule =====
 function priceFromMargin(cost, marginPct){
   const m = (Number(marginPct)||0)/100;
@@ -157,7 +140,7 @@ function load(){
     $('#subject').value= x.subject|| '';
     $('#validDays').value = x.validDays || '30';
     $('#vat').value = x.vat || 22;
-    $('#extra').value = x.extra || 0;
+    $('#extra').value = x.extra || '0';
     if(x.pricingMode){ pricingMode = x.pricingMode; localStorage.setItem('preventivo.pro.mode', pricingMode); }
     rows = (x.rows||[]).map(r => ({...r}));
   }
@@ -272,7 +255,6 @@ function selectAC(idx){
   const item = acBox._data?.[idx]; if(!item) return;
   const i = acFor.rowIndex;
 
-  // Scrive la DESCRIZIONE nel campo giusto, non il costo
   rows[i].desc   = item.desc || rows[i].desc;
   rows[i].cost   = Number(item.cost)   || 0;
   rows[i].margin = Number(item.margin) || (rows[i].margin || 0);
@@ -283,7 +265,11 @@ function selectAC(idx){
   tr.querySelector('input[data-k="desc"]').value   = rows[i].desc;
   tr.querySelector('input[data-k="cost"]').value   = rows[i].cost;
   tr.querySelector('input[data-k="margin"]').value = rows[i].margin;
-  tr.querySelector('input[data-k="price"]').value  = basePrice(rows[i].cost, rows[i].margin);
+
+  // mostra prezzo unitario POST-SCONTO
+  const base = rows[i].price>0 ? rows[i].price : basePrice(rows[i].cost, rows[i].margin);
+  const finalUnit = +(base * (1 - (Number(rows[i].disc)||0)/100)).toFixed(2);
+  tr.querySelector('input[data-k="price"]').value  = finalUnit;
 
   closeAC(); calc();
 }
@@ -308,8 +294,8 @@ function attachAutocomplete(input, i){
 function render(){
   tbody.innerHTML = '';
   rows.forEach((r,i)=>{
-    const computed = basePrice(Number(r.cost)||0, Number(r.margin)||0);
-    const displayPrice = (Number(r.price)>0) ? Number(r.price) : computed;
+    const base = (Number(r.price)>0 ? Number(r.price) : basePrice(Number(r.cost)||0, Number(r.margin)||0));
+    const finalUnit = +(base * (1 - ((Number(r.disc)||0)/100))).toFixed(2);
 
     const cover = r.img192
       ? `<img src="${r.img192}" alt="img" class="thumb">`
@@ -330,7 +316,7 @@ function render(){
       <td><input data-i="${i}" data-k="desc" value="${escapeHtml(r.desc)}" placeholder="Voce o cerca nel catalogo…"></td>
       <td class="right"><input data-i="${i}" data-k="cost" type="number" inputmode="decimal" step="0.01" value="${Number(r.cost)||0}"></td>
       <td class="right"><input data-i="${i}" data-k="margin" type="number" inputmode="decimal" step="0.1" value="${Number(r.margin)||0}"></td>
-      <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${displayPrice}"></td>
+      <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${finalUnit}"></td>
       <td class="right"><input data-i="${i}" data-k="qty" type="number" step="1" value="${Number(r.qty)||1}"></td>
       <td class="right"><input data-i="${i}" data-k="disc" type="number" inputmode="decimal" step="0.1" value="${Number(r.disc)||0}"></td>
       <td><button class="btn" data-del="${i}">×</button></td>
@@ -344,23 +330,52 @@ function render(){
 }
 
 // ===== Input live =====
+// Regole importanti:
+// - Il campo "price" in UI rappresenta SEMPRE il prezzo unitario POST-SCONTO.
+// - Se l'utente modifica "price", salviamo internamente il PREZZO BASE dividendo per (1 - disc).
+// - Se cambia "disc", aggiorniamo subito la UI del price per mostrare il nuovo post-sconto.
+// - Se cambiano cost/margin e la riga NON è forzata (price==0), ricalcoliamo base e aggiorniamo la UI del price.
 tbody.addEventListener('input', e=>{
   const el = e.target;
   const i  = Number(el.dataset.i);
   const k  = el.dataset.k;
   if(!Number.isFinite(i) || !rows[i]) return;
 
+  const row = rows[i];
+
+  const numFrom = v => {
+    if (v === '' || v == null) return 0;
+    return Number(String(v).replace(',', '.')) || 0;
+  };
+
   if(k === 'desc'){
-    rows[i].desc = el.value;
+    row.desc = el.value;
+  }else if(k === 'price'){
+    // utente ha inserito un PREZZO POST-SCONTO -> ricava base
+    const post = numFrom(el.value);
+    const disc = numFrom(el.closest('tr').querySelector('input[data-k="disc"]').value);
+    const factor = Math.max(1 - (disc/100), 0.0001);
+    const base = +(post / factor).toFixed(2);
+    row.price = base; // ora la riga è "forzata"
   }else{
-    const val = el.value === '' ? 0 : Number(String(el.value).replace(',', '.'));
-    rows[i][k] = Number.isFinite(val) ? val : 0;
+    // altri numerici
+    const val = numFrom(el.value);
+    row[k] = val;
   }
 
-  if((k==='cost' || k==='margin') && !(Number(rows[i].price)>0)){
+  // aggiornamenti dipendenti
+  const baseNow = (Number(row.price)>0 ? Number(row.price) : basePrice(Number(row.cost)||0, Number(row.margin)||0));
+  const discNow = Number(row.disc)||0;
+  const postNow = +(baseNow * (1 - discNow/100)).toFixed(2);
+
+  if(k==='disc' || k==='cost' || k==='margin'){
+    // aggiorna il campo prezzo visibile come post-sconto, ma:
+    // - se (cost/margin) e la riga è forzata (price>0), NON tocchiamo il base salvato.
+    // - se (cost/margin) e non forzata (price==0), ricalcolo già fatto in baseNow.
     const priceInput = el.closest('tr').querySelector('input[data-k="price"]');
-    if(priceInput) priceInput.value = basePrice(Number(rows[i].cost)||0, Number(rows[i].margin)||0);
+    if(priceInput) priceInput.value = postNow;
   }
+
   calc();
 });
 
@@ -419,6 +434,7 @@ function calc(){
 }
 
 // ===== Auto-prezzo =====
+// Imposta r.price come PREZZO BASE (non scontato). In UI verrà mostrato post-sconto.
 $('#autoPrice')?.addEventListener('click', ()=>{
   const target = (Number($('#targetMargin')?.value)||30)/100;
   const extra  = getExtra().amount;
@@ -436,7 +452,7 @@ $('#autoPrice')?.addEventListener('click', ()=>{
 
   rows = rows.map(r=>{
     const base = (Number(r.price)>0 ? Number(r.price) : basePrice(Number(r.cost)||0, Number(r.margin)||0));
-    return {...r, price: +((base * factor).toFixed(2))};
+    return {...r, price: +((base * factor).toFixed(2))}; // salva BASE
   });
 
   render(); calc();
@@ -478,8 +494,8 @@ $('#importCsv')?.addEventListener('click',()=>{
 $('#demoCsv')?.addEventListener('click',()=>{
   rows=[];
   rows.push({desc:'Piattaforma sollevamento PFA50', cost:22500, margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
-  rows.push({desc:'Smontagomme FT26SN',         cost:9750, margin:0, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
-  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:9880, margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
+  rows.push({desc:'Smontagomme FT26SN',         cost:9750,  margin:0, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
+  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:9880,  margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
   render(); calc();
 });
 
@@ -534,7 +550,7 @@ function buildPrintView(mode='internal'){
         <td>${img}</td>
         <td>${escapeHtml(r.desc||'')}</td>
         <td class="right">${money(Number(r.cost)||0)}</td>
-        <td class="right">${money(base)}</td>
+        <td class="right">${money(finalUnit)}</td>
         <td class="right">${Number(r.qty)||1}</td>
         <td class="right">${(Number(r.disc)||0).toLocaleString('it-IT')}%</td>
         <td class="right"><b>${money(totaleRiga)}</b></td>
@@ -543,7 +559,7 @@ function buildPrintView(mode='internal'){
       return `<tr>
         <td>${img}</td>
         <td>${escapeHtml(r.desc||'')}</td>
-        <td class="right">${money(base)}</td>
+        <td class="right">${money(finalUnit)}</td>
         <td class="right">${Number(r.qty)||1}</td>
         <td class="right">${(Number(r.disc)||0).toLocaleString('it-IT')}%</td>
         <td class="right"><b>${money(totaleRiga)}</b></td>
@@ -619,7 +635,6 @@ $('#resetApp')?.addEventListener('click',()=>{
     localStorage.removeItem(catalogKey);
     rows=[]; 
     catalog=[]; 
-    
     // reset campi principali
     $('#client').value = '';
     $('#email').value = '';
@@ -627,7 +642,6 @@ $('#resetApp')?.addEventListener('click',()=>{
     $('#validDays').value = '30';
     $('#vat').value = 22;
     $('#extra').value = '0';
-    
     render(); 
     calc(); 
   }
