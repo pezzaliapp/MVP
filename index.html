@@ -28,7 +28,7 @@
       background:rgba(11,16,34,.7); backdrop-filter:blur(8px);
       border-bottom:1px solid var(--line);
     }
-    .bar{max-width:1200px;margin:0 auto;padding:12px 16px;display:flex;gap:10px;align-items:center}
+    .bar{max-width:1200px;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
     h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
     .tag{font-size:12px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
     .btn{appearance:none;border:1px solid var(--line);background:#111834;color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
@@ -73,15 +73,15 @@
     td.right input{text-align:right}
     .right{text-align:right}
 
-    /* Larghezze colonne (bilanciate: descrizione dominante) */
-    .col-img{width:132px}     /* miniatura + pulsanti */
+    /* Larghezze colonne (descrizione larga, campi numerici stretti) */
+    .col-img{width:120px}
     .col-desc{width:auto}
-    .col-cost{width:140px}
-    .col-margin{width:120px}
-    .col-price{width:150px}
-    .col-qty{width:90px}
-    .col-disc{width:110px}
-    .col-del{width:52px}
+    .col-cost{width:120px}
+    .col-margin{width:100px}
+    .col-price{width:130px}
+    .col-qty{width:80px}
+    .col-disc{width:90px}
+    .col-del{width:48px}
 
     /* Numerici: niente spinner */
     input[type=number]::-webkit-outer-spin-button,
@@ -89,11 +89,11 @@
     input[type=number]{ -moz-appearance:textfield; }
 
     /* Immagini per riga */
-    .thumb{width:48px;height:48px;border-radius:8px;border:1px solid var(--line);display:block;object-fit:cover;background:#0f1836}
-    .thumb.placeholder{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px}
-    .thumbwrap{display:flex;align-items:center;gap:10px}
-    .thumb-actions{display:flex;flex-direction:column;gap:6px}
-    .thumb-actions .btn{padding:6px 8px;border-radius:8px}
+    .thumb{width:42px;height:42px;border-radius:8px;border:1px solid var(--line);display:block;object-fit:cover;background:#0f1836}
+    .thumb.placeholder{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px}
+    .thumbwrap{display:flex;align-items:center;gap:8px}
+    .thumb-actions{display:flex;flex-direction:column;gap:4px}
+    .thumb-actions .btn{padding:4px 6px;border-radius:6px;font-size:11px}
 
     /* Totali */
     .muted{color:var(--muted)}
@@ -106,14 +106,14 @@
     .foot{max-width:1200px;margin:0 auto;padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:space-between}
     .foot small{color:var(--muted)}
 
-    /* Responsive fine-tuning */
+    /* Responsive */
     @media(max-width:900px){
-      .col-img{width:120px}
-      .col-cost{width:130px}
-      .col-margin{width:110px}
-      .col-price{width:140px}
-      .col-qty{width:84px}
-      .col-disc{width:100px}
+      .col-img{width:100px}
+      .col-cost{width:110px}
+      .col-margin{width:90px}
+      .col-price{width:120px}
+      .col-qty{width:70px}
+      .col-disc{width:80px}
     }
 
     /* Print */
@@ -147,10 +147,9 @@
 
   <main>
     <div class="grid">
-      <!-- Colonna sinistra: form + righe -->
+      <!-- Colonna sinistra -->
       <section class="card">
         <h2>Dati cliente & preventivo</h2>
-
         <div class="section" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div><label>Cliente</label><input id="client" placeholder="Ragione sociale / Nome" autocomplete="organization"></div>
           <div><label>Email</label><input id="email" placeholder="email@cliente.it" type="email"></div>
@@ -163,13 +162,11 @@
             </select>
           </div>
         </div>
-
         <div class="section">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <strong>Voci di preventivo</strong>
             <button class="btn" id="addItem">+ Aggiungi riga</button>
           </div>
-
           <table>
             <colgroup>
               <col class="col-img"><col class="col-desc"><col class="col-cost"><col class="col-margin">
@@ -177,10 +174,9 @@
             </colgroup>
             <thead>
               <tr>
-                <th>Img</th>
-                <th>Descrizione</th>
+                <th>Img</th><th>Descrizione</th>
                 <th class="right">Costo</th>
-                <th class="right" id="thMargin">Margine %</th>
+                <th class="right">Margine %</th>
                 <th class="right">Prezzo netto</th>
                 <th class="right">Q.tà</th>
                 <th class="right">Sconto %</th>
@@ -189,7 +185,6 @@
             </thead>
             <tbody id="items"></tbody>
           </table>
-
           <div class="pill" style="margin-top:8px">
             <span>CSV demo:</span>
             <button class="btn btn-ghost" id="demoCsv">carica 3 righe</button>
@@ -197,7 +192,7 @@
         </div>
       </section>
 
-      <!-- Colonna destra: totali -->
+      <!-- Colonna destra -->
       <aside class="card">
         <h2>Margini & Totali</h2>
         <div class="section">
@@ -205,7 +200,6 @@
             <div><label>IVA %</label><input id="vat" type="number" value="22"></div>
             <div><label>Spese (trasporto, installazione)</label><input id="extra" type="number" value="0"></div>
           </div>
-
           <div class="totals">
             <div class="card" style="padding:12px">
               <div class="muted">Ricavi netti</div>
@@ -220,7 +214,6 @@
               <div class="mono" id="sumTotale">€0,00</div>
             </div>
           </div>
-
           <div style="margin-top:12px">
             <div class="pill">Target margine medio %:
               <input id="targetMargin" type="number" value="30" style="width:80px;margin-left:8px">
