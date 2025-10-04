@@ -8,7 +8,10 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png">
   <style>
-    :root{ --bg:#0b1022; --card:#111735; --ink:#f1f4ff; --muted:#9fb0d9; --cta:#22c55e; --line:#1d2a55; --focus:#2dd4bf }
+    :root{
+      --bg:#0b1022; --card:#111735; --ink:#f1f4ff; --muted:#9fb0d9;
+      --cta:#22c55e; --line:#1d2a55; --focus:#2dd4bf;
+    }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
@@ -17,69 +20,92 @@
       background:radial-gradient(1200px 600px at 10% -10%,#162250 0%,#0b1022 40%,#070a16 100%) fixed;
       overflow-x:hidden;
     }
-    header{ position:sticky; top:0; z-index:10; background:rgba(11,16,34,.7); backdrop-filter:blur(8px); border-bottom:1px solid var(--line) }
-    .bar{ max-width:1200px; margin:0 auto; padding:12px 16px; display:flex; flex-wrap:wrap; gap:10px; align-items:center }
-    h1{ font-size:18px; margin:0; font-weight:800; letter-spacing:.2px }
-    .tag{ font-size:12px; padding:2px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted) }
-    .btn{ appearance:none; border:1px solid var(--line); background:#111834; color:var(--ink); padding:8px 12px; border-radius:10px; cursor:pointer }
-    .btn:hover{ transform:translateY(-1px) }
-    .btn-cta{ background:var(--cta); border-color:#0e8a43; color:#07120c; font-weight:700 }
-    .btn-ghost{ background:transparent }
-    .select{ background:#111834; border:1px solid var(--line); color:var(--ink); padding:8px 10px; border-radius:10px; cursor:pointer }
+    header{
+      position:sticky; top:0; z-index:10;
+      background:rgba(11,16,34,.7); backdrop-filter:blur(8px);
+      border-bottom:1px solid var(--line);
+    }
+    .bar{max-width:1200px;margin:0 auto;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
+    .tag{font-size:12px;padding:2px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+    .btn{appearance:none;border:1px solid var(--line);background:#111834;color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
+    .btn:hover{transform:translateY(-1px)}
+    .btn-cta{background:var(--cta);border-color:#0e8a43;color:#07120c;font-weight:700}
+    .btn-ghost{background:transparent}
+    .select{background:#111834;border:1px solid var(--line);color:var(--ink);padding:8px 10px;border-radius:10px;cursor:pointer}
 
-    main{ max-width:1200px; margin:16px auto; padding:0 12px 110px }
-    .grid{ display:grid; grid-template-columns:minmax(560px,1fr) 380px; gap:16px }
+    main{max-width:1200px;margin:16px auto;padding:0 12px 110px}
+    .grid{display:grid;grid-template-columns:minmax(560px,1fr) 380px;gap:16px}
     @media(max-width:1100px){ .grid{ grid-template-columns:1fr } }
 
-    .card{ background:linear-gradient(180deg,rgba(28,42,85,.4),rgba(17,24,52,.7)); border:1px solid var(--line); border-radius:16px; box-shadow:0 6px 22px rgba(0,0,0,.25) }
-    .card h2{ margin:0; padding:14px 16px; border-bottom:1px solid var(--line); font-size:15px }
-    .section{ padding:14px 16px }
+    .card{background:linear-gradient(180deg,rgba(28,42,85,.4),rgba(17,24,52,.7));border:1px solid var(--line);border-radius:16px;box-shadow:0 6px 22px rgba(0,0,0,.25)}
+    .card h2{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:15px}
+    .section{padding:14px 16px}
 
-    label{ font-size:12px; color:var(--muted) }
+    label{font-size:12px;color:var(--muted)}
     input,select{
-      width:100%; padding:9px 11px; margin-top:6px; background:#0f1836; border:1px solid var(--line);
-      border-radius:10px; color:var(--ink); font-size:14px; outline:none;
+      width:100%; padding:9px 11px; margin-top:6px;
+      background:#0f1836; border:1px solid var(--line); border-radius:10px; color:var(--ink);
+      font-size:14px; outline:none;
     }
     input:focus,select:focus{ border-color:var(--focus); box-shadow:0 0 0 3px rgba(45,212,191,.12) }
 
-    table{ width:100%; border-collapse:separate; border-spacing:0 8px; table-layout:fixed }
-    th{ font-size:12px; color:var(--muted); text-align:left; padding:0 8px }
-    td{ padding:6px 8px; font-size:14px }
-    tr.item{ background:#0f1836; border:1px solid var(--line) }
-    tr.item td:first-child{ border-top-left-radius:10px; border-bottom-left-radius:10px }
-    tr.item td:last-child{ border-top-right-radius:10px; border-bottom-right-radius:10px }
-    td input{ width:100%; font-size:14px }
-    td.right input{ text-align:right }
+    table{width:100%; border-collapse:separate; border-spacing:0 8px; table-layout:fixed}
+    th{font-size:12px;color:var(--muted);text-align:left;padding:0 8px}
+    td{padding:6px 8px; font-size:14px}
+    tr.item{background:#0f1836;border:1px solid var(--line)}
+    tr.item td:first-child{border-top-left-radius:10px;border-bottom-left-radius:10px}
+    tr.item td:last-child{border-top-right-radius:10px;border-bottom-right-radius:10px}
+    td input{width:100%; font-size:14px}
+    td.right input{text-align:right}
     .right{text-align:right}
 
-    .col-img{width:96px} .col-desc{width:auto} .col-cost{width:92px} .col-margin{width:90px}
-    .col-price{width:110px} .col-qty{width:72px} .col-disc{width:86px} .col-del{width:40px}
-    td input[data-k="desc"]{ font-size:14px; padding:8px 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+    /* colonne */
+    .col-img{width:96px}
+    .col-desc{width:auto}
+    .col-cost{width:92px}
+    .col-margin{width:90px}
+    .col-price{width:110px}
+    .col-qty{width:72px}
+    .col-disc{width:86px}
+    .col-del{width:40px}
 
-    input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0 }
-    input[type=number]{ -moz-appearance:textfield }
+    /* descrizione leggibile */
+    td input[data-k="desc"]{font-size:14px;padding:8px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-    .thumb{ width:42px; height:42px; border-radius:8px; border:1px solid var(--line); display:block; object-fit:cover; background:#0f1836 }
-    .thumb.placeholder{ display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:16px }
-    .thumbwrap{ display:flex; align-items:center; gap:8px }
-    .thumb-actions{ display:flex; flex-direction:column; gap:4px }
-    .thumb-actions .btn{ padding:4px 6px; border-radius:6px; font-size:11px }
+    /* numerici: no spinner */
+    input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+    input[type=number]{-moz-appearance:textfield}
 
-    .muted{ color:var(--muted) }
-    .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace }
-    .totals{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
-    .pill{ display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px }
+    /* immagini riga */
+    .thumb{width:42px;height:42px;border-radius:8px;border:1px solid var(--line);display:block;object-fit:cover;background:#0f1836}
+    .thumb.placeholder{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px}
+    .thumbwrap{display:flex;align-items:center;gap:8px}
+    .thumb-actions{display:flex;flex-direction:column;gap:4px}
+    .thumb-actions .btn{padding:4px 6px;border-radius:6px;font-size:11px}
 
-    footer{ position:fixed; bottom:0; left:0; right:0; background:rgba(11,16,34,.85); backdrop-filter:blur(8px); border-top:1px solid var(--line) }
-    .foot{ max-width:1200px; margin:0 auto; padding:10px 12px; display:flex; gap:8px; align-items:center; justify-content:space-between }
-    .foot small{ color:var(--muted) }
+    .muted{color:var(--muted)}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .totals{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .pill{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
 
-    /* VISTA CARD */
+    footer{position:fixed;bottom:0;left:0;right:0;background:rgba(11,16,34,.85);backdrop-filter:blur(8px);border-top:1px solid var(--line)}
+    .foot{max-width:1200px;margin:0 auto;padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+    .foot small{color:var(--muted)}
+
+    /* -------- VISTA CARD -------- */
     body.layout-cards table thead{display:none}
     body.layout-cards table{border-spacing:0 10px}
     body.layout-cards tr.item{
-      display:grid; grid-template-columns:86px 1fr;
-      grid-template-areas:"img desc" "cost cost" "margin margin" "price price" "qty disc" "del del";
+      display:grid;
+      grid-template-columns: 86px 1fr;
+      grid-template-areas:
+        "img desc"
+        "cost cost"
+        "margin margin"
+        "price price"
+        "qty disc"
+        "del del";
       gap:10px; padding:12px; border-radius:12px;
     }
     body.layout-cards tr.item td{padding:0;border:none;background:transparent}
@@ -92,7 +118,8 @@
     body.layout-cards tr.item td:nth-child(7){grid-area:disc}
     body.layout-cards tr.item td:nth-child(8){grid-area:del;text-align:right}
     body.layout-cards tr.item td:nth-child(n+2):nth-child(-n+7)::before{
-      display:block;color:var(--muted);font-size:12px;margin:0 0 4px; content:attr(data-label);
+      display:block;color:var(--muted);font-size:12px;margin:0 0 4px;
+      content: attr(data-label);
     }
     body.layout-cards td input{width:100%;font-size:16px;padding:10px 12px;border-radius:10px}
     body.layout-cards td input[data-k="desc"]{white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
@@ -114,10 +141,10 @@
       main{padding-bottom:24px}
     }
 
-    /* PRINT VIEW */
+    /* PRINT-VIEW: solo layout preventivo */
     #printView{display:none}
     @media print{
-      header, footer, main .grid, #resetApp, #unlockPro, #installBtn, #importCsv, #saveQuote, #printBtn, #addItem, [data-del], #viewSelect{ display:none !important; }
+      header, footer, main .grid, #resetApp, #installBtn, #importCsv, #saveQuote, #printBtn, #addItem, [data-del], #viewSelect{ display:none !important; }
       body{background:#fff!important;color:#111!important;font:13px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial}
       .card{box-shadow:none;border:1px solid #ddd}
       #printView{display:block!important;padding:24px}
@@ -143,12 +170,6 @@
       .pv-kpi .val{font-size:16px;font-weight:700}
       .pv-notes{margin-top:10px;font-size:12px;color:#333}
       .pv-notes li{margin:4px 0}
-      body.free::before{
-        content:"DEMO — NON PER USO COMMERCIALE";
-        position:fixed;top:35%;left:-10%;transform:rotate(-30deg);
-        font-weight:800;font-size:72px;letter-spacing:2px;color:rgba(239,68,68,0.18);
-        width:140%;text-align:center;z-index:9999;
-      }
     }
   </style>
 </head>
@@ -157,7 +178,6 @@
     <div class="bar">
       <h1>Preventivo PRO</h1>
       <span class="tag">PWA • Offline</span>
-
       <div style="display:flex;gap:6px;align-items:center">
         <label for="viewSelect" class="tag" style="border:none;padding:0">Vista:</label>
         <select id="viewSelect" class="select">
@@ -165,13 +185,13 @@
           <option value="cards">Card (mobile)</option>
         </select>
       </div>
-
       <button id="installBtn" class="btn btn-ghost" hidden>Aggiungi alla Home</button>
       <div style="flex:1"></div>
       <button class="btn" id="importCsv">Importa CSV</button>
       <button class="btn" id="saveQuote">Salva</button>
       <button class="btn" id="printBtn">Stampa/PDF</button>
-      <button class="btn btn-cta" id="unlockPro">Sblocca PRO</button>
+      <!-- Donazione -->
+      <button class="btn btn-cta" id="donateBtn">Dona ☕︎</button>
     </div>
   </header>
 
@@ -252,19 +272,26 @@
             <p class="muted" style="margin-top:10px">
               Suggeritore: calcola i prezzi netti per ogni riga per raggiungere il <em>target</em> di margine medio.
             </p>
-            <!-- (Nessuno specchio qui: il selettore viene aggiunto da app.js) -->
+            <!-- Selettore unico Modalità prezzo -->
+            <div class="pill" style="margin-top:12px">
+              <span>Modalità prezzo:</span>
+              <select id="modeMirror" class="select">
+                <option>Margine</option><option>Ricarico</option>
+              </select>
+            </div>
           </div>
         </div>
       </aside>
 
-      <!-- PRINT VIEW -->
+      <!-- PRINT VIEW (mostrata solo in stampa) -->
       <section id="printView" aria-hidden="true"></section>
+
     </div>
   </main>
 
   <footer>
     <div class="foot">
-      <small>© 2025 pezzaliAPP — MIT • Dati locali nel tuo browser • Versione gratuita limitata a 1 preventivo salvato</small>
+      <small>© 2025 pezzaliAPP — MIT • Dati locali nel tuo browser • Donazione facoltativa</small>
       <div><button class="btn" id="resetApp">Reset dati</button></div>
     </div>
   </footer>
@@ -300,6 +327,18 @@
       document.getElementById('viewSelect')?.addEventListener('change', e=>applyLayout(e.target.value));
       const obs = new MutationObserver(applyDataLabels);
       obs.observe(document.getElementById('items'), {childList:true, subtree:true});
+
+      // specchio modalità prezzo (legge il TH aggiornato da app.js)
+      const thMargin = document.getElementById('thMargin');
+      const modeMirror = document.getElementById('modeMirror');
+      const syncMode = () => {
+        const txt = (thMargin?.textContent||'Margine %').includes('Ricarico') ? 'Ricarico' : 'Margine';
+        if(modeMirror) modeMirror.value = txt;
+        if(document.body.classList.contains('layout-cards')) applyDataLabels();
+      };
+      const obs2 = new MutationObserver(syncMode);
+      obs2.observe(document.documentElement, {subtree:true, childList:true, characterData:true});
+      syncMode();
     })();
   </script>
 </body>
