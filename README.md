@@ -1,4 +1,4 @@
-# Preventivo PRO — Quoting & Margini (PWA)
+# <img src="https://raw.githubusercontent.com/pezzaliapp/MVP/main/icons/icon-192.png" alt="Logo" width="32" style="vertical-align:middle;margin-right:6px;"> Preventivo PRO — Quoting & Margini (PWA)
 
 **Preventivo PRO** è una Progressive Web App (PWA) per creare preventivi professionali **direttamente dal browser**.  
 Funziona **offline**, salva i dati in **locale** (LocalStorage) e non richiede alcun server.
