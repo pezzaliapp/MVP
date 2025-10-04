@@ -259,7 +259,18 @@
         <div class="section">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
             <div><label>IVA %</label><input id="vat" type="number" value="22"></div>
-            <div><label>Spese (trasporto, installazione)</label><input id="extra" type="number" value="0"></div>
+       <!-- Colonna destra -->
+      <aside class="card">
+        <h2>Margini & Totali</h2>
+        <div class="section">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div><label>IVA %</label><input id="vat" type="number" value="22"></div>
+       <div>
+  <label>Spese (trasporto, installazione)</label>
+  <!-- ora è text: accetta "inclusi", "da definire", ecc. -->
+  <input id="extra" type="text" value="0" placeholder="0 oppure 'inclusi', 'da definire'">
+</div>
+          </div>
           </div>
           <div class="totals">
             <div class="card" style="padding:12px">
