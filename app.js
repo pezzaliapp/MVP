@@ -1,4 +1,4 @@
-// app.js — Preventivo PRO (margine VERO / ricarico + fix input + auto-prezzo)
+// app.js — Preventivo PRO (img per riga + margine VERO / ricarico + fix input + auto-prezzo)
 const $=sel=>document.querySelector(sel);
 const money=v=> (v||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
 
@@ -33,6 +33,33 @@ function basePrice(cost, pct){
   return pricingMode==='margin' ? priceFromMargin(cost, pct) : priceFromMarkup(cost, pct);
 }
 
+// ---------- Image utils ----------
+function fileToDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
+function resizeDataURL(dataURL, size){ // ritorna PNG dataURL size×size (cover)
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      canvas.width=size; canvas.height=size;
+      const ctx=canvas.getContext('2d');
+      const ratio = Math.max(size/img.width, size/img.height);
+      const w = img.width*ratio, h = img.height*ratio;
+      const x = (size - w)/2, y = (size - h)/2;
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size); // sfondo bianco per stampa
+      ctx.imageSmoothingQuality='high';
+      ctx.drawImage(img, x, y, w, h);
+      res(canvas.toDataURL('image/png', 0.92));
+    };
+    img.onerror=rej; img.src=dataURL;
+  });
+}
+async function processImageFile(file){
+  const data = await fileToDataURL(file);
+  const png192 = await resizeDataURL(data, 192);
+  const png512 = await resizeDataURL(data, 512);
+  return {img192: png192, img512: png512, name: file.name};
+}
+
 // Stato
 let rows=[];
 const storeKey='preventivo.pro.v1';
@@ -55,7 +82,7 @@ function load(){
   rows=x.rows||[]; render(); calc(); updateModeLabel();
 }
 
-// UI: aggiungo il selettore modalità vicino al target margine
+// UI: selettore modalità vicino al target margine
 function ensureModeSelector(){
   if ($('#modeSelect')) return;
   const aside = document.querySelector('aside.card .section');
@@ -81,29 +108,44 @@ function ensureModeSelector(){
 }
 // Aggiorna intestazione colonna (Margine % / Ricarico %)
 function updateModeLabel(){
-  const ths = document.querySelectorAll('table thead th');
-  if(ths && ths[2]) ths[2].textContent = (pricingMode==='margin' ? 'Margine %' : 'Ricarico %');
+  const th = document.getElementById('thMargin');
+  if(th) th.textContent = (pricingMode==='margin' ? 'Margine %' : 'Ricarico %');
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{ ensureModeSelector(); updateModeLabel(); });
 
 // Righe
 const tbody=$('#items');
-function addRow(r={desc:'',cost:0,margin:30,price:0,qty:1,disc:0}){ rows.push(r); render(); calc(); }
+function addRow(r={desc:'',cost:0,margin:30,price:0,qty:1,disc:0,img192:null,img512:null,name:null}){ rows.push(r); render(); calc(); }
 function delRow(i){ rows.splice(i,1); render(); calc(); }
-function render(){ tbody.innerHTML=''; rows.forEach((r,i)=>{
-  const computed = basePrice(r.cost, r.margin); // in base alla modalità
-  const displayPrice = (r.price && r.price>0) ? r.price : computed;
-  const tr=document.createElement('tr'); tr.className='item'; tr.innerHTML=`
-    <td><input data-i="${i}" data-k="desc" value="${r.desc}" placeholder="Voce"/></td>
-    <td class="right"><input data-i="${i}" data-k="cost" type="number" inputmode="decimal" step="0.01" value="${r.cost}"/></td>
-    <td class="right"><input data-i="${i}" data-k="margin" type="number" inputmode="decimal" step="0.1" value="${r.margin}"/></td>
-    <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${displayPrice}"/></td>
-    <td class="right"><input data-i="${i}" data-k="qty" type="number" step="1" value="${r.qty}"/></td>
-    <td class="right"><input data-i="${i}" data-k="disc" type="number" inputmode="decimal" step="0.1" value="${r.disc||0}"/></td>
-    <td><button class="btn" data-del="${i}">×</button></td>`;
-  tbody.appendChild(tr);
-}); ensureModeSelector(); updateModeLabel(); }
+
+function render(){ 
+  tbody.innerHTML='';
+  rows.forEach((r,i)=>{
+    const computed = basePrice(r.cost, r.margin); // in base alla modalità
+    const displayPrice = (r.price && r.price>0) ? r.price : computed;
+    const cover = r.img192 ? `<img src="${r.img192}" alt="img" class="thumb">` : `<div class="thumb placeholder">📷</div>`;
+    const tr=document.createElement('tr'); tr.className='item'; tr.innerHTML=`
+      <td>
+        <div class="thumbwrap">
+          ${cover}
+          <div class="thumb-actions">
+            <button class="btn btn-ghost" data-img="${i}">Carica</button>
+            ${r.img192?`<button class="btn btn-ghost" data-img-del="${i}">Rimuovi</button>`:''}
+          </div>
+        </div>
+      </td>
+      <td><input data-i="${i}" data-k="desc" value="${r.desc}" placeholder="Voce"/></td>
+      <td class="right"><input data-i="${i}" data-k="cost" type="number" inputmode="decimal" step="0.01" value="${r.cost}"/></td>
+      <td class="right"><input data-i="${i}" data-k="margin" type="number" inputmode="decimal" step="0.1" value="${r.margin}"/></td>
+      <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${displayPrice}"/></td>
+      <td class="right"><input data-i="${i}" data-k="qty" type="number" step="1" value="${r.qty}"/></td>
+      <td class="right"><input data-i="${i}" data-k="disc" type="number" inputmode="decimal" step="0.1" value="${r.disc||0}"/></td>
+      <td><button class="btn" data-del="${i}">×</button></td>`;
+    tbody.appendChild(tr);
+  });
+  ensureModeSelector(); updateModeLabel();
+}
 
 // 🔧 FIX input: aggiorna stato + (se prezzo non impostato) aggiorna prezzo calcolato
 tbody.addEventListener('input',e=>{
@@ -121,7 +163,33 @@ tbody.addEventListener('input',e=>{
   calc();
 });
 
-tbody.addEventListener('click',e=>{ const i=e.target.dataset.del; if(i!==undefined){ delRow(+i); }});
+// Click: cancella riga / upload img / delete img
+tbody.addEventListener('click',async e=>{
+  const iDel = e.target.dataset.del;
+  if(iDel!==undefined){ delRow(+iDel); return; }
+
+  const iUp = e.target.dataset.img;
+  if(iUp!==undefined){
+    const idx=+iUp;
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+    inp.onchange=async ()=>{ const f=inp.files?.[0]; if(!f) return;
+      try{
+        const {img192,img512,name} = await processImageFile(f);
+        rows[idx].img192=img192; rows[idx].img512=img512; rows[idx].name=name;
+        render(); calc();
+      }catch(err){ alert('Errore immagine: '+err); }
+    };
+    inp.click();
+    return;
+  }
+
+  const iDrop = e.target.dataset.imgDel;
+  if(iDrop!==undefined){
+    const idx=+iDrop;
+    rows[idx].img192=null; rows[idx].img512=null; rows[idx].name=null;
+    render(); calc();
+  }
+});
 
 // Calcoli (sempre margine reale nei totali; sconto applicato sul prezzo)
 function calc(){
@@ -168,7 +236,7 @@ $('#autoPrice').addEventListener('click',()=>{
   render(); calc();
 });
 
-// Import CSV (desc,cost,margin,price,qty,disc)
+// Import CSV (desc,cost,margin,price,qty,disc) — immagini non via CSV
 $('#importCsv').addEventListener('click',()=>{
   const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv,text/csv';
   inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; const reader=new FileReader(); reader.onload=()=>{
@@ -176,7 +244,7 @@ $('#importCsv').addEventListener('click',()=>{
     rows=[];
     lines.forEach(line=>{
       const p=line.split(/;|,/);
-      rows.push({desc:p[0]||'', cost:+(p[1]||0), margin:+(p[2]||30), price:+(p[3]||0), qty:+(p[4]||1), disc:+(p[5]||0)});
+      rows.push({desc:p[0]||'', cost:+(p[1]||0), margin:+(p[2]||30), price:+(p[3]||0), qty:+(p[4]||1), disc:+(p[5]||0), img192:null, img512:null, name:null});
     });
     render(); calc();
   }; reader.readAsText(f); };
@@ -186,9 +254,9 @@ $('#importCsv').addEventListener('click',()=>{
 // Demo CSV
 $('#demoCsv').addEventListener('click',()=>{
   rows=[];
-  rows.push({desc:'Piattaforma sollevamento PFA50', cost:1000, margin:30, price:0, qty:1, disc:0});
-  rows.push({desc:'Smontagomme FT26SN', cost:1450, margin:35, price:0, qty:1, disc:5});
-  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:2800, margin:28, price:0, qty:1, disc:0});
+  rows.push({desc:'Piattaforma sollevamento PFA50', cost:1000, margin:30, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
+  rows.push({desc:'Smontagomme FT26SN', cost:1450, margin:35, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
+  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:2800, margin:28, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
   render(); calc();
 });
 
