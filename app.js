@@ -1,5 +1,5 @@
 // app.js — Preventivo PRO (gratuito con omaggio)
-// img per riga + modalità Margine/Ricarico + fix input + auto-prezzo + PRINT VIEW (interna/cliente)
+// img per riga + modalità Margine/Ricarico + auto-prezzo + PRINT VIEW (interna/cliente) + CATALOGO con ricerca
 
 const $ = sel => document.querySelector(sel);
 const money = v => (v || 0).toLocaleString('it-IT', { style:'currency', currency:'EUR' });
@@ -88,7 +88,10 @@ function toast(msg){
 
 // ===== Stato & storage =====
 let rows = [];
+let catalog = []; // <- CATALOGO ricercabile
+
 const storeKey = 'preventivo.pro.v1';
+const catalogKey = 'preventivo.pro.catalog.v1';
 
 function save(){
   localStorage.setItem(storeKey, JSON.stringify({
@@ -101,18 +104,24 @@ function save(){
     rows,
     pricingMode
   }));
+  if(catalog?.length){
+    localStorage.setItem(catalogKey, JSON.stringify(catalog));
+  }
   toast('Salvato');
 }
 function load(){
-  const x = JSON.parse(localStorage.getItem(storeKey)||'null'); if(!x) return;
-  $('#client').value = x.client || '';
-  $('#email').value  = x.email  || '';
-  $('#subject').value= x.subject|| '';
-  $('#validDays').value = x.validDays || '30';
-  $('#vat').value = x.vat || 22;
-  $('#extra').value = x.extra || 0;
-  if(x.pricingMode){ pricingMode = x.pricingMode; localStorage.setItem('preventivo.pro.mode', pricingMode); }
-  rows = (x.rows||[]).map(r => ({...r}));
+  const x = JSON.parse(localStorage.getItem(storeKey)||'null'); 
+  if(x){
+    $('#client').value = x.client || '';
+    $('#email').value  = x.email  || '';
+    $('#subject').value= x.subject|| '';
+    $('#validDays').value = x.validDays || '30';
+    $('#vat').value = x.vat || 22;
+    $('#extra').value = x.extra || 0;
+    if(x.pricingMode){ pricingMode = x.pricingMode; localStorage.setItem('preventivo.pro.mode', pricingMode); }
+    rows = (x.rows||[]).map(r => ({...r}));
+  }
+  catalog = JSON.parse(localStorage.getItem(catalogKey)||'[]');
   render(); calc(); updateModeUI();
 }
 
@@ -124,9 +133,7 @@ function updateModeLabel(){
 function updateModeUI(){
   updateModeLabel();
   const sel = $('#modeMirror');
-  if(sel){
-    sel.value = (pricingMode==='margin') ? 'Margine' : 'Ricarico';
-  }
+  if(sel){ sel.value = (pricingMode==='margin') ? 'Margine' : 'Ricarico'; }
 }
 function hookModeMirror(){
   const sel = $('#modeMirror');
@@ -135,13 +142,8 @@ function hookModeMirror(){
     pricingMode = (sel.value==='Ricarico') ? 'markup' : 'margin';
     localStorage.setItem('preventivo.pro.mode', pricingMode);
     updateModeUI();
-
-    // 🔧 Ricalcola le righe non forzate (price vuoto/0)
-    rows = rows.map(r=>{
-      const force = Number(r.price)||0;
-      return force>0 ? r : {...r, price: 0}; // 0 = usa basePrice in render
-    });
-
+    // ricalcola righe non forzate
+    rows = rows.map(r => (Number(r.price)>0) ? r : {...r, price:0});
     render(); calc();
   });
 }
@@ -151,7 +153,6 @@ const tbody = $('#items');
 
 function addRow(r={desc:'',cost:0,margin:30,price:0,qty:1,disc:0,img192:null,img512:null,name:null}){
   rows.push(r); render(); calc();
-  // focus sulla descrizione dell’ultima riga
   setTimeout(()=>{
     const last = tbody.querySelector('tr.item:last-child input[data-k="desc"]');
     last?.focus();
@@ -163,6 +164,107 @@ function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
 }
 
+// ===== Autocomplete (catalogo) =====
+let acBox; let acIndex = -1; let acFor; // input attivo
+function ensureACStyles(){
+  if($('#ac-style')) return;
+  const st = document.createElement('style'); st.id='ac-style';
+  st.textContent = `
+    .ac-box{position:absolute;z-index:9999;background:#0f1836;border:1px solid #1d2a55;border-radius:10px;box-shadow:0 6px 22px rgba(0,0,0,.25);max-height:260px;overflow:auto;min-width:240px}
+    .ac-item{padding:8px 10px;cursor:pointer;display:flex;gap:8px;align-items:center}
+    .ac-item:hover,.ac-item.on{background:#12204b}
+    .ac-code{font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#9fb0d9}
+    .ac-desc{font-size:13px}
+    .ac-price{margin-left:auto;font-size:12px;color:#9fb0d9}
+  `;
+  document.head.appendChild(st);
+}
+function closeAC(){ acBox?.remove(); acBox=null; acIndex=-1; acFor=null; }
+
+function openACFor(input, i){
+  ensureACStyles();
+  acFor = { input, rowIndex:i };
+  if(!acBox){ acBox = document.createElement('div'); acBox.className='ac-box'; document.body.appendChild(acBox); }
+  positionAC();
+  updateACList(input.value.trim());
+}
+function positionAC(){
+  if(!acBox || !acFor) return;
+  const r = acFor.input.getBoundingClientRect();
+  acBox.style.left = (window.scrollX + r.left) + 'px';
+  acBox.style.top  = (window.scrollY + r.bottom + 4) + 'px';
+  acBox.style.width= r.width + 'px';
+}
+window.addEventListener('scroll', positionAC, true);
+window.addEventListener('resize', positionAC);
+
+function updateACList(query){
+  if(!acBox) return;
+  const q = query.toLowerCase();
+  const list = (!q ? [] : catalog.filter(it =>
+    (it.desc||'').toLowerCase().includes(q) || (it.code||'').toLowerCase().includes(q)
+  ).slice(0,20));
+
+  if(list.length===0){ acBox.innerHTML = `<div class="ac-item" style="color:#9fb0d9;cursor:default">Nessun risultato…</div>`; return; }
+
+  acBox.innerHTML = list.map((it,idx)=>`
+    <div class="ac-item" data-idx="${idx}">
+      <span class="ac-code">${escapeHtml(it.code||'—')}</span>
+      <span class="ac-desc">${escapeHtml(it.desc||'')}</span>
+      <span class="ac-price">${money(+it.cost||0)}</span>
+    </div>
+  `).join('');
+
+  Array.from(acBox.querySelectorAll('.ac-item')).forEach(el=>{
+    el.addEventListener('mouseenter', ()=>{ acIndex = +el.dataset.idx; markAC(); });
+    el.addEventListener('mousedown', (ev)=>{ ev.preventDefault(); selectAC(+el.dataset.idx); });
+  });
+
+  acBox._data = list; // attacca risultati all’elemento
+  acIndex = 0; markAC();
+}
+function markAC(){
+  if(!acBox) return;
+  Array.from(acBox.children).forEach((c,idx)=> c.classList.toggle('on', idx===acIndex));
+}
+function selectAC(idx){
+  if(!acBox || !acFor) return;
+  const item = acBox._data?.[idx]; if(!item) return;
+  const i = acFor.rowIndex;
+
+  rows[i].desc   = item.desc || rows[i].desc;
+  rows[i].cost   = Number(item.cost)||0;
+  rows[i].margin = Number(item.margin)|| (rows[i].margin||30);
+  // non forziamo il price: lasciamo 0 così si ricalcola dal mode
+  rows[i].price  = 0;
+
+  // aggiorna inputs della riga già in DOM
+  const tr = acFor.input.closest('tr');
+  tr.querySelector('input[data-k="desc"]').value   = rows[i].desc;
+  tr.querySelector('input[data-k="cost"]').value   = rows[i].cost;
+  tr.querySelector('input[data-k="margin"]').value = rows[i].margin;
+  tr.querySelector('input[data-k="price"]').value  = basePrice(rows[i].cost, rows[i].margin);
+
+  closeAC(); calc();
+}
+
+function attachAutocomplete(input, i){
+  input.addEventListener('focus', ()=> openACFor(input,i));
+  input.addEventListener('input', ()=> updateACList(input.value));
+  input.addEventListener('keydown', (e)=>{
+    if(!acBox) return;
+    if(e.key==='ArrowDown'){ acIndex=Math.min(acIndex+1, acBox.children.length-1); markAC(); e.preventDefault(); }
+    else if(e.key==='ArrowUp'){ acIndex=Math.max(acIndex-1, 0); markAC(); e.preventDefault(); }
+    else if(e.key==='Enter'){ selectAC(acIndex); e.preventDefault(); }
+    else if(e.key==='Escape'){ closeAC(); }
+  });
+  document.addEventListener('click', (ev)=>{
+    if(!acBox) return;
+    if(ev.target!==input && !acBox.contains(ev.target)) closeAC();
+  }, {capture:true});
+}
+
+// ===== Render =====
 function render(){
   tbody.innerHTML = '';
   rows.forEach((r,i)=>{
@@ -185,7 +287,7 @@ function render(){
           </div>
         </div>
       </td>
-      <td><input data-i="${i}" data-k="desc" value="${escapeHtml(r.desc)}" placeholder="Voce"></td>
+      <td><input data-i="${i}" data-k="desc" value="${escapeHtml(r.desc)}" placeholder="Voce o cerca nel catalogo…"></td>
       <td class="right"><input data-i="${i}" data-k="cost" type="number" inputmode="decimal" step="0.01" value="${Number(r.cost)||0}"></td>
       <td class="right"><input data-i="${i}" data-k="margin" type="number" inputmode="decimal" step="0.1" value="${Number(r.margin)||0}"></td>
       <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${displayPrice}"></td>
@@ -194,6 +296,9 @@ function render(){
       <td><button class="btn" data-del="${i}">×</button></td>
     `;
     tbody.appendChild(tr);
+
+    // attacca l’autocomplete alla descrizione
+    attachAutocomplete(tr.querySelector('input[data-k="desc"]'), i);
   });
   updateModeUI();
 }
@@ -208,16 +313,13 @@ tbody.addEventListener('input', e=>{
   if(k === 'desc'){
     rows[i].desc = el.value;
   }else{
-    const val = el.value === '' ? 0 : Number(el.value.replace(',', '.'));
+    const val = el.value === '' ? 0 : Number(String(el.value).replace(',', '.'));
     rows[i][k] = Number.isFinite(val) ? val : 0;
   }
 
-  // se si cambia cost/margin e la riga non è “forzata”, ricalcola il price visuale
   if((k==='cost' || k==='margin') && !(Number(rows[i].price)>0)){
     const priceInput = el.closest('tr').querySelector('input[data-k="price"]');
-    if(priceInput){
-      priceInput.value = basePrice(Number(rows[i].cost)||0, Number(rows[i].margin)||0);
-    }
+    if(priceInput) priceInput.value = basePrice(Number(rows[i].cost)||0, Number(rows[i].margin)||0);
   }
   calc();
 });
@@ -252,7 +354,7 @@ tbody.addEventListener('click', async e=>{
   }
 });
 
-// ===== Calcoli (margine reale; sconto sul prezzo) =====
+// ===== Calcoli =====
 function calc(){
   let ricavi=0, costi=0;
   rows.forEach(r=>{
@@ -275,7 +377,7 @@ function calc(){
   $('#sumTotale').textContent     = money(totale);
 }
 
-// ===== Auto-prezzo (target margine medio) =====
+// ===== Auto-prezzo =====
 $('#autoPrice')?.addEventListener('click', ()=>{
   const target = (Number($('#targetMargin')?.value)||30)/100;
   const extra  = Number($('#extra')?.value)||0;
@@ -299,7 +401,7 @@ $('#autoPrice')?.addEventListener('click', ()=>{
   render(); calc();
 });
 
-// Import CSV (desc,cost,margin,price,qty,disc)
+// ===== Import CSV -> CATALOGO =====
 $('#importCsv')?.addEventListener('click',()=>{
   const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv,text/csv';
   inp.onchange=()=>{
@@ -307,22 +409,31 @@ $('#importCsv')?.addEventListener('click',()=>{
     const reader=new FileReader();
     reader.onload=()=>{
       const lines=String(reader.result).split(/\r?\n/).filter(Boolean);
-      rows=[];
-      lines.forEach(line=>{
-        const p=line.split(/;|,/);
-        rows.push({
-          desc:p[0]||'', cost:+(p[1]||0), margin:+(p[2]||30), price:+(p[3]||0),
-          qty:+(p[4]||1), disc:+(p[5]||0), img192:null, img512:null, name:null
-        });
-      });
-      render(); calc();
+      const out=[];
+      // salta eventuale intestazione se contiene lettere
+      const start= (lines[0] && /[a-zA-Z]/.test(lines[0])) ? 1 : 0;
+      for(let li=start; li<lines.length; li++){
+        const raw = lines[li].trim();
+        if(!raw) continue;
+        const p = raw.split(/;|,/).map(s=>s.replace(/^"(.*)"$/,'$1'));
+        // mapping flessibile
+        let code='', desc='', cost=0, margin=30, price=0;
+        if(p.length>=5){ [code,desc,cost,margin,price] = [p[0],p[1],+p[2]||0,+p[3]||30,+p[4]||0]; }
+        else if(p.length===4){ [desc,cost,margin,price] = [p[0],+p[1]||0,+p[2]||30,+p[3]||0]; }
+        else if(p.length===3){ [desc,cost,margin] = [p[0],+p[1]||0,+p[2]||30]; }
+        else { continue; }
+        out.push({code, desc, cost, margin, price});
+      }
+      catalog = out;
+      localStorage.setItem(catalogKey, JSON.stringify(catalog));
+      toast(`Catalogo importato: ${catalog.length} articoli`);
     };
     reader.readAsText(f);
   };
   inp.click();
 });
 
-// Demo CSV
+// ===== Demo righe (facoltativo) =====
 $('#demoCsv')?.addEventListener('click',()=>{
   rows=[];
   rows.push({desc:'Piattaforma sollevamento PFA50', cost:9900, margin:30, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
@@ -447,14 +558,10 @@ function buildPrintView(mode='internal'){
   `;
 }
 
-// ===== Stampa: due pulsanti + fallback scorciatoia =====
+// ===== Stampa =====
 let lastPrintMode = 'internal';
-$('#printInternalBtn')?.addEventListener('click', ()=>{
-  lastPrintMode = 'internal'; buildPrintView('internal'); window.print();
-});
-$('#printClientBtn')?.addEventListener('click', ()=>{
-  lastPrintMode = 'client'; buildPrintView('client'); window.print();
-});
+$('#printInternalBtn')?.addEventListener('click', ()=>{ lastPrintMode='internal'; buildPrintView('internal'); window.print(); });
+$('#printClientBtn')?.addEventListener('click', ()=>{ lastPrintMode='client';  buildPrintView('client');  window.print(); });
 window.addEventListener('beforeprint', ()=>{ buildPrintView(lastPrintMode || 'internal'); });
 
 // Pulsanti base
@@ -465,7 +572,8 @@ $('#addItem')?.addEventListener('click',()=>addRow());
 $('#saveQuote')?.addEventListener('click',save);
 $('#resetApp')?.addEventListener('click',()=>{ 
   if(confirm('Cancellare tutti i dati locali?')){ 
-    localStorage.removeItem(storeKey); rows=[]; render(); calc(); 
+    localStorage.removeItem(storeKey); localStorage.removeItem(catalogKey);
+    rows=[]; catalog=[]; render(); calc(); 
   }
 });
 
