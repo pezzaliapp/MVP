@@ -37,20 +37,22 @@ const tbody=$('#items');
 function addRow(r={desc:'',cost:0,margin:30,price:0,qty:1,disc:0}){ rows.push(r); render(); calc(); }
 function delRow(i){ rows.splice(i,1); render(); calc(); }
 function render(){ tbody.innerHTML=''; rows.forEach((r,i)=>{
+  const computed = +( (r.cost||0) * (1 + (r.margin||0)/100) ).toFixed(2);
+  const displayPrice = (r.price && r.price>0) ? r.price : computed;
   const tr=document.createElement('tr'); tr.className='item'; tr.innerHTML=`
     <td><input data-i="${i}" data-k="desc" value="${r.desc}" placeholder="Voce"/></td>
-    <td class="right"><input data-i="${i}" data-k="cost" type="number" value="${r.cost}"/></td>
-    <td class="right"><input data-i="${i}" data-k="margin" type="number" value="${r.margin}"/></td>
-    <td class="right"><input data-i="${i}" data-k="price" type="number" value="${r.price}"/></td>
-    <td class="right"><input data-i="${i}" data-k="qty" type="number" value="${r.qty}"/></td>
-    <td class="right"><input data-i="${i}" data-k="disc" type="number" value="${r.disc}"/></td>
+    <td class="right"><input data-i="${i}" data-k="cost" type="number" inputmode="decimal" step="0.01" value="${r.cost}"/></td>
+    <td class="right"><input data-i="${i}" data-k="margin" type="number" inputmode="decimal" step="0.1" value="${r.margin}"/></td>
+    <td class="right"><input data-i="${i}" data-k="price" type="number" inputmode="decimal" step="0.01" value="${displayPrice}"/></td>
+    <td class="right"><input data-i="${i}" data-k="qty" type="number" step="1" value="${r.qty}"/></td>
+    <td class="right"><input data-i="${i}" data-k="disc" type="number" inputmode="decimal" step="0.1" value="${r.disc||0}"/></td>
     <td><button class="btn" data-del="${i}">×</button></td>`;
   tbody.appendChild(tr);
 });}
 
 tbody.addEventListener('input',e=>{
   const el=e.target; const i=+el.dataset.i; const k=el.dataset.k;
-  if(Number.isInteger(i)){ rows[i][k]= (k==='desc')? el.value : +el.value; calc(); }
+  if(Number.isInteger(i)){ rows[i][k]= (k==='desc')? el.value : +el.value; calc(); render(); }
 });
 tbody.addEventListener('click',e=>{ const i=e.target.dataset.del; if(i!==undefined){ delRow(+i); }});
 
