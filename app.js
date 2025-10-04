@@ -477,9 +477,9 @@ $('#importCsv')?.addEventListener('click',()=>{
 // ===== Demo righe (facoltativo) =====
 $('#demoCsv')?.addEventListener('click',()=>{
   rows=[];
-  rows.push({desc:'Piattaforma sollevamento PFA50', cost:9900, margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
-  rows.push({desc:'Smontagomme FT26SN',         cost:3900, margin:0, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
-  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:3950, margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
+  rows.push({desc:'Piattaforma sollevamento PFA50', cost:22500, margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
+  rows.push({desc:'Smontagomme FT26SN',         cost:9750, margin:0, price:0, qty:1, disc:5, img192:null,img512:null,name:null});
+  rows.push({desc:'Bilanciatrice MEC 200 Truck', cost:9880, margin:0, price:0, qty:1, disc:0, img192:null,img512:null,name:null});
   render(); calc();
 });
 
@@ -615,8 +615,21 @@ $('#addItem')?.addEventListener('click',()=>addRow());
 $('#saveQuote')?.addEventListener('click',save);
 $('#resetApp')?.addEventListener('click',()=>{ 
   if(confirm('Cancellare tutti i dati locali?')){ 
-    localStorage.removeItem(storeKey); localStorage.removeItem(catalogKey);
-    rows=[]; catalog=[]; render(); calc(); 
+    localStorage.removeItem(storeKey); 
+    localStorage.removeItem(catalogKey);
+    rows=[]; 
+    catalog=[]; 
+    
+    // reset campi principali
+    $('#client').value = '';
+    $('#email').value = '';
+    $('#subject').value = '';
+    $('#validDays').value = '30';
+    $('#vat').value = 22;
+    $('#extra').value = '0';
+    
+    render(); 
+    calc(); 
   }
 });
 
