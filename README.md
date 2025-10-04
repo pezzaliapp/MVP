@@ -17,59 +17,57 @@ Funziona **offline**, salva i dati in **locale** (LocalStorage) e non richiede a
   - **Stampa Cliente** → senza costi, ricavi e modalità prezzo.
 - **Import CSV** (schema dedicato, vedi sotto).
 - **PWA installabile** su desktop e mobile.
-- **Donazione facoltativa** via PayPal.
+- **Omaggio**: link rapido all’app **Il Cubo**.
 
 ---
 
-## Donazioni
+## Omaggio — Il Cubo
 
-L’app è gratuita. Se vuoi supportarne lo sviluppo, puoi donare a partire da **5 €** dal pulsante **“Dona ☕︎”**.
+All’interno dell’app trovi il pulsante **“🎁 Omaggio: Il Cubo”** che apre l’app dimostrativa **KubeApp (Il Cubo)**:  
+**https://www.alessandropezzali.it/KubeApp/**
 
-Imposta il tuo link PayPal.Me in `app.js`:
+> È solo un omaggio: non influisce in alcun modo sul funzionamento di Preventivo PRO.
 
-// app.jS
-const PAYPAL_URL = "https://paypal.me/tuoHandle/5"; // precompila 5 €, modificabile dall'utente
-
-L’importo è solo precompilato: il donatore può variarlo prima del pagamento.
-
-⸻
+---
 
 ## Stampa / PDF
 
 Sono disponibili due pulsanti:
-	•	Stampa Interna (#printInternalBtn)
-	•	Include: Modalità prezzo, Costi, Ricavi netti, Totali.
-	•	Stampa Cliente (#printClientBtn)
-	•	Nasconde: Modalità prezzo, Costi, Ricavi netti.
-	•	Mostra: Prezzi, Sconti, Totali.
 
-Tecnicamente, prima della stampa viene generato HTML pulito dentro #printView e il CSS @media print mostra solo questa sezione.
+- **Stampa Interna** (`#printInternalBtn`)
+  - *Include*: Modalità prezzo, **Costi**, **Ricavi netti**, **Totali**.
+- **Stampa Cliente** (`#printClientBtn`)
+  - *Nasconde*: Modalità prezzo, **Costi**, **Ricavi netti**.
+  - *Mostra*: **Prezzi**, **Sconti**, **Totali**.
 
-Suggerimenti:
-	•	Desktop: “Stampa → Salva come PDF”.
-	•	Mobile: dalla finestra di stampa condividi/esporta PDF.
+Tecnicamente, prima della stampa viene generato HTML pulito dentro `#printView` e il CSS `@media print` mostra solo questa sezione.
 
-⸻
+**Suggerimenti**
+- Desktop: “Stampa → Salva come PDF”.
+- Mobile: dalla finestra di stampa condividi/esporta PDF.
+
+---
 
 ## Import CSV
 
-Il pulsante Importa CSV accetta file con separatore , o ; e intestazione opzionale.
-Ordine delle colonne:
+Il pulsante **Importa CSV** accetta file con separatore `,` **o** `;` e intestazione **opzionale**.  
+**Ordine delle colonne:**
 
 desc, cost, margin, price, qty, disc
 
-Significato colonne
-	•	desc  → Descrizione voce.
-	•	cost  → Costo unitario.
-	•	margin→ Percentuale margine/ricarico (si interpreta in base alla modalità attiva).
-	•	price → Prezzo netto unitario (se 0 o vuoto viene ricalcolato).
-	•	qty   → Quantità.
-	•	disc  → Sconto % applicato alla riga.
+**Significato colonne**
+- `desc`  → Descrizione voce.  
+- `cost`  → Costo unitario.  
+- `margin` → Percentuale di margine/ricarico *(interpreta in base alla modalità attiva)*.  
+- `price` → Prezzo netto unitario *(se 0 o vuoto viene ricalcolato)*.  
+- `qty`   → Quantità.  
+- `disc`  → Sconto % applicato alla riga.
 
-Le immagini non si importano via CSV (si caricano dalla UI per ogni riga).
+Le **immagini** non si importano via CSV (si caricano dalla UI per ogni riga).
 
-Esempio
+**Esempio**
 
+csv
 desc,cost,margin,price,qty,disc
 "Piattaforma sollevamento PFA50",1000,30,0,1,0
 "Smontagomme FT26SN",1450,35,0,1,5
@@ -81,13 +79,12 @@ desc,cost,margin,price,qty,disc
 ## Dati & Privacy
 	•	Tutti i dati sono salvati solo nel browser via LocalStorage.
 	•	Nessun backend o invio a server esterni.
-	•	Donazioni gestite direttamente da PayPal.
 
-Chiavi LocalStorage utilizzate:
+Chiavi LocalStorage utilizzate
 	•	preventivo.pro.v1 → preventivo corrente (campi + righe).
 	•	preventivo.pro.mode → modalità prezzo (margin/markup).
 	•	preventivo.pro.layout → vista tabella/card.
-	•	preventivo.pro.donated → flag di ringraziamento (cosmetico).
+	•	preventivo.pro.donated → storico legacy, non più usata attivamente.
 
 ⸻
 
@@ -100,7 +97,7 @@ Chiavi LocalStorage utilizzate:
 
 ## Struttura
 	•	index.html — layout + stile + script di bootstrap.
-	•	app.js — logica: calcoli, CSV, stampa, donazione, immagini.
+	•	app.js — logica: calcoli, CSV, stampa, immagini, link omaggio.
 	•	sw.js — service worker per cache offline.
 	•	manifest.webmanifest — manifest PWA.
 	•	icons/ — icone app (192/512).
@@ -116,17 +113,16 @@ Chiavi LocalStorage utilizzate:
 
 ⸻
 
----
-
 ## Licenza
 
-Distribuito con **licenza MIT**. Vedi il file [LICENSE](./LICENSE).
+Distribuito con licenza MIT. Vedi il file LICENSE.
 
-### Nota etica di utilizzo
+Nota etica di utilizzo
+
 Oltre alla licenza ufficiale MIT, ti chiediamo di rispettare alcune semplici linee guida etiche:
+	•	Mantenere sempre la nota di copyright.
+	•	Citare l’autore originale: Alessandro Pezzali — pezzaliAPP.
+	•	Segnalare l’uso o le modifiche scrivendo a: info@alessandropezzali.it.
 
-- Mantenere sempre la nota di copyright.  
-- Citare l’autore originale: **Alessandro Pezzali — pezzaliAPP**.  
-- Segnalare l’uso o le modifiche scrivendo a: **info@alessandropezzali.it**.  
+Questa richiesta non modifica i termini della licenza MIT, ma rappresenta un impegno di trasparenza e collaborazione.
 
-Questa richiesta non modifica i termini della licenza MIT, ma rappresenta un impegno di **trasparenza e collaborazione**.
