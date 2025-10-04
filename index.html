@@ -252,10 +252,11 @@
           </div>
         </div>
       </section>
-     <!-- Colonna destra -->
+  <!-- Colonna destra -->
 <aside class="card">
   <h2>Margini & Totali</h2>
   <div class="section">
+    <!-- IVA + Spese -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
       <div>
         <label>IVA %</label>
@@ -263,27 +264,47 @@
       </div>
       <div>
         <label>Spese (trasporto, installazione)</label>
-        <!-- text: accetta "inclusi", "da definire", ecc. -->
+        <!-- text: può essere 0 oppure testo tipo 'inclusi', 'da definire' -->
         <input id="extra" type="text" value="0" placeholder="0 oppure 'inclusi'">
       </div>
     </div>
 
-    <div id="sumNetto">0,00 €</div>
-    <div id="sumMargin">0,00 €</div>
-    <div id="sumImponibile">0,00 €</div>
-    <div id="sumTotale">0,00 €</div>
+    <!-- KPI -->
+    <div class="totals">
+      <div class="card" style="padding:12px">
+        <div class="muted">Ricavi netti</div>
+        <div class="mono" id="sumNetto" style="font-size:22px">€0,00</div>
+        <div class="muted">Margine assoluto</div>
+        <div class="mono" id="sumMargin">€0,00</div>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="muted">Totale imponibile</div>
+        <div class="mono" id="sumImponibile" style="font-size:22px">€0,00</div>
+        <div class="muted">Totale IVA inclusa</div>
+        <div class="mono" id="sumTotale">€0,00</div>
+      </div>
+    </div>
 
-    <label>Target margine medio %</label>
-    <input id="targetMargin" type="number" value="30">
-    <button id="autoPrice" class="btn">Suggerisci prezzi per target</button>
+    <!-- Target e suggeritore -->
+    <div style="margin-top:12px">
+      <div class="pill">Target margine medio %:
+        <input id="targetMargin" type="number" value="30" style="width:80px;margin-left:8px">
+      </div>
+      <button class="btn" id="autoPrice" style="margin-top:8px">
+        Suggerisci prezzi per target
+      </button>
+      <p class="muted" style="margin-top:10px">
+        Suggeritore: calcola i prezzi netti per ogni riga per raggiungere il <em>target</em> di margine medio.
+      </p>
 
-    <!-- Selettore unico Modalità prezzo -->
-    <div class="pill" style="margin-top:12px">
-      <span>Modalità prezzo:</span>
-      <select id="modeMirror" class="select">
-        <option>Margine</option>
-        <option>Ricarico</option>
-      </select>
+      <!-- Selettore unico Modalità prezzo -->
+      <div class="pill" style="margin-top:12px">
+        <span>Modalità prezzo:</span>
+        <select id="modeMirror" class="select">
+          <option>Margine</option>
+          <option>Ricarico</option>
+        </select>
+      </div>
     </div>
   </div>
 </aside>
