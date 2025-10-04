@@ -5,7 +5,8 @@ const $ = sel => document.querySelector(sel);
 const money = v => (v || 0).toLocaleString('it-IT', { style:'currency', currency:'EUR' });
 
 // ===== Config Donazione =====
-const PAYPAL_URL = "https://www.paypal.com/paypalme/my/profile"; // il tuo link
+// DOPO (pagina di donazione pubblica, precompilata a 5 € ma modificabile)
+const PAYPAL_URL = "https://paypal.me/pezzalialessandro/5";
 const MIN_DONATION_EUR = 5;
 
 // ===== PWA install =====
