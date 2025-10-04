@@ -77,15 +77,21 @@
     td.right input{text-align:right}
     .right{text-align:right}
 
-    /* Larghezze colonne (descrizione larga, campi numerici stretti) */
-    .col-img{width:120px}
+    /* Colonne: Descrizione molto più ampia, numerici compatti */
+    .col-img{width:96px}
     .col-desc{width:auto}
-    .col-cost{width:120px}
-    .col-margin{width:100px}
-    .col-price{width:130px}
-    .col-qty{width:80px}
-    .col-disc{width:90px}
-    .col-del{width:48px}
+    .col-cost{width:92px}
+    .col-margin{width:90px}
+    .col-price{width:110px}
+    .col-qty{width:72px}
+    .col-disc{width:86px}
+    .col-del{width:40px}
+
+    /* Input descrizione leggibile */
+    td input[data-k="desc"]{
+      font-size:14px; padding:8px 10px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
 
     /* Numerici: niente spinner */
     input[type=number]::-webkit-outer-spin-button,
@@ -110,22 +116,12 @@
     .foot{max-width:1200px;margin:0 auto;padding:10px 12px;display:flex;gap:8px;align-items:center;justify-content:space-between}
     .foot small{color:var(--muted)}
 
-    /* Responsive */
-    @media(max-width:900px){
-      .col-img{width:100px}
-      .col-cost{width:110px}
-      .col-margin{width:90px}
-      .col-price{width:120px}
-      .col-qty{width:70px}
-      .col-disc{width:80px}
-    }
-
     /* -------- VISTA CARD (mobile-like ma attivabile anche su desktop) -------- */
     body.layout-cards table thead{display:none}
     body.layout-cards table{border-spacing:0 10px}
     body.layout-cards tr.item{
       display:grid;
-      grid-template-columns:90px 1fr;
+      grid-template-columns: 86px 1fr;      /* img | contenuto */
       grid-template-areas:
         "img desc"
         "cost cost"
@@ -134,7 +130,8 @@
         "qty disc"
         "del del";
       gap:10px;
-      padding:10px; /* usa i padding del td */
+      padding:12px;
+      border-radius:12px;
     }
     body.layout-cards tr.item td{padding:0;border:none;background:transparent}
     body.layout-cards tr.item td:nth-child(1){grid-area:img}
@@ -146,13 +143,53 @@
     body.layout-cards tr.item td:nth-child(7){grid-area:disc}
     body.layout-cards tr.item td:nth-child(8){grid-area:del; text-align:right}
 
-    /* Etichette sui campi (simulate via ::before per non toccare app.js) */
-    body.layout-cards tr.item td:nth-child(2)::before{content:"Descrizione";display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
-    body.layout-cards tr.item td:nth-child(3)::before{content:"Costo";display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
-    body.layout-cards tr.item td:nth-child(4)::before{content:var(--lbl-marg,"Margine %");display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
-    body.layout-cards tr.item td:nth-child(5)::before{content:"Prezzo netto";display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
-    body.layout-cards tr.item td:nth-child(6)::before{content:"Q.tà";display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
-    body.layout-cards tr.item td:nth-child(7)::before{content:"Sconto %";display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
+    /* Etichette sopra i campi (fallback statico + attr data-label) */
+    body.layout-cards tr.item td:nth-child(n+2):nth-child(-n+7)::before{
+      display:block; color:var(--muted); font-size:12px; margin:0 0 4px;
+      content: attr(data-label);
+    }
+    body.layout-cards tr.item td:nth-child(2)::before{content:attr(data-label, "Descrizione")}
+    body.layout-cards tr.item td:nth-child(3)::before{content:attr(data-label, "Costo")}
+    body.layout-cards tr.item td:nth-child(4)::before{content:attr(data-label, "Margine %")}
+    body.layout-cards tr.item td:nth-child(5)::before{content:attr(data-label, "Prezzo netto")}
+    body.layout-cards tr.item td:nth-child(6)::before{content:attr(data-label, "Q.tà")}
+    body.layout-cards tr.item td:nth-child(7)::before{content:attr(data-label, "Sconto %")}
+
+    /* Input a tutta larghezza e leggibili */
+    body.layout-cards td input{width:100%; font-size:16px; padding:10px 12px; border-radius:10px}
+    body.layout-cards td input[data-k="desc"]{white-space:nowrap; text-overflow:ellipsis; overflow:hidden}
+
+    /* Miniatura + pulsanti più grandi */
+    body.layout-cards .thumb{width:64px;height:64px}
+    body.layout-cards .thumbwrap{gap:8px}
+    body.layout-cards .thumb-actions{gap:6px}
+    body.layout-cards .thumb-actions .btn{padding:6px 8px; font-size:12px}
+
+    /* Breakpoint molto piccolo: una colonna sola */
+    @media (max-width: 480px){
+      body.layout-cards tr.item{
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "img"
+          "desc"
+          "cost"
+          "margin"
+          "price"
+          "qty"
+          "disc"
+          "del";
+      }
+    }
+
+    /* Responsive (compatta bottoni, ecc.) */
+    @media (max-width: 768px){
+      .bar{gap:8px}
+      .btn, .select{padding:7px 10px; border-radius:9px; font-size:14px}
+      h1{font-size:17px}
+      /* footer non fisso su mobile per non coprire i campi */
+      footer{position:static; inset:auto; border-top:1px solid var(--line)}
+      main{padding-bottom:24px}
+    }
 
     /* Print */
     @media print{
@@ -270,6 +307,12 @@
             <p class="muted" style="margin-top:10px">
               Suggeritore: calcola i prezzi netti per ogni riga per raggiungere il <em>target</em> di margine medio.
             </p>
+            <div class="pill" style="margin-top:12px">
+              <span>Modalità prezzo:</span>
+              <select id="modeMirror" class="select" disabled style="opacity:.8">
+                <option>Margine</option><option>Ricarico</option>
+              </select>
+            </div>
           </div>
         </div>
       </aside>
@@ -285,7 +328,7 @@
 
   <script src="./app.js"></script>
 
-  <!-- Switch vista + auto-rilevamento -->
+  <!-- Switch vista + auto-rilevamento + labels per vista Card -->
   <script>
     (function(){
       const key = 'preventivo.pro.layout';
@@ -299,10 +342,19 @@
 
       function applyLayout(mode){
         document.body.classList.toggle('layout-cards', mode==='cards');
-        document.body.style.setProperty('--lbl-marg', mode==='cards' ? (document.getElementById('thMargin')?.textContent||'Margine %') : 'Margine %');
         const sel = document.getElementById('viewSelect');
         if(sel) sel.value = mode;
         localStorage.setItem(key, mode);
+        // Aggiorna data-label sui TD per vista Card
+        setTimeout(applyDataLabels, 0);
+      }
+
+      function applyDataLabels(){
+        const head = Array.from(document.querySelectorAll('table thead th')).map(th => th.textContent.trim());
+        document.querySelectorAll('#items tr.item').forEach(tr=>{
+          const tds = tr.querySelectorAll('td');
+          tds.forEach((td,idx)=>{ if(head[idx]) td.setAttribute('data-label', head[idx]); });
+        });
       }
 
       // init
@@ -313,13 +365,21 @@
         applyLayout(e.target.value);
       });
 
-      // Aggiorna etichetta "Margine %" anche se cambi modalità prezzo da app.js
-      const obs = new MutationObserver(()=>{
-        if(document.body.classList.contains('layout-cards')){
-          document.body.style.setProperty('--lbl-marg', document.getElementById('thMargin')?.textContent || 'Margine %');
-        }
-      });
-      obs.observe(document.documentElement, {subtree:true, childList:true, characterData:true});
+      // osserva cambi alla tabella (quando aggiungi/elimina righe da app.js)
+      const obs = new MutationObserver(applyDataLabels);
+      obs.observe(document.getElementById('items'), {childList:true, subtree:true});
+
+      // specchio della modalità prezzo (Margine/Ricarico) gestita da app.js
+      const thMargin = document.getElementById('thMargin');
+      const modeMirror = document.getElementById('modeMirror');
+      const syncMode = () => {
+        const txt = (thMargin?.textContent||'Margine %').includes('Ricarico') ? 'Ricarico' : 'Margine';
+        if(modeMirror) modeMirror.value = txt;
+        if(document.body.classList.contains('layout-cards')) applyDataLabels();
+      };
+      const obs2 = new MutationObserver(syncMode);
+      obs2.observe(document.documentElement, {subtree:true, childList:true, characterData:true});
+      syncMode();
     })();
   </script>
 </body>
