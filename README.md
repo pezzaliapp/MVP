@@ -118,8 +118,15 @@ Chiavi LocalStorage utilizzate:
 
 ## Licenza
 
-Questo progetto è rilasciato con **licenza MIT**, che ne consente l’uso, la modifica e la redistribuzione, anche per fini commerciali, purché venga sempre mantenuta la nota di copyright e la stessa licenza.  
+Distribuito con licenza **MIT** (open source).  
+Puoi utilizzare, modificare e ridistribuire liberamente il codice, anche a fini commerciali, mantenendo la nota di copyright.
 
-⚖️ La versione MIT garantisce libertà d’uso, ma tutela anche l’autore tramite l’obbligo di attribuzione e l’esclusione di responsabilità.  
+---
 
-Per i dettagli completi consulta il file [LICENSE](./LICENSE).
+### Nota etica
+Per rispetto al lavoro svolto, se utilizzi o modifichi **Preventivo PRO** in progetti derivati o commerciali, ti chiediamo di:  
+- Mantenere sempre la nota di copyright.  
+- Citare l’autore originale (**Alessandro Pezzali — pezzaliAPP**).  
+- Segnalare l’uso o la modifica, scrivendo a **info@alessandropezzali.it**.  
+
+Questo non è un vincolo legale della licenza MIT, ma una richiesta di trasparenza e collaborazione.
