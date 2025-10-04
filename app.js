@@ -21,26 +21,45 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js'); }
 let pricingMode = localStorage.getItem('preventivo.pro.mode') || 'margin';
 
 // ===== Extra (numero o testo) =====
-// Accetta: "inclusi", "da definire", "trasporto 120", "installazione € 75,50", ecc.
-// Se trova un numero nel testo, lo usa nei conteggi; altrimenti 0.
+// Estrae il PRIMO importo presente nel testo, accettando:
+// - separatori migliaia con punti o spazi (anche NBSP)
+// - decimali con virgola o punto
+// - simboli valuta sparsi
+// Se non trova numeri => amount = 0. label resta il testo originale.
 function getExtra(){
   const raw = ($('#extra')?.value ?? '').trim();
+  if (!raw) return { amount: 0, label: '0' };
 
-  // cerca la PRIMA occorrenza numerica nel testo (anche con virgola)
-  const m = raw.match(/-?\d+(?:[.,]\d+)?/);
+  // match robusto tipo EUR: "1.200,50" | "1200.50" | "1 200,50" | "-75,5" | "120"
+  const m = raw.match(/[-+]?\d{1,3}(?:[.\s\u00A0]\d{3})*(?:[.,]\d+)?|[-+]?\d+(?:[.,]\d+)?/);
 
   let amount = 0;
   if (m) {
-    amount = parseFloat(m[0].replace(',', '.'));
-    if (isNaN(amount)) amount = 0;
+    let s = m[0];
+
+    // Tieni solo cifre, segni e separatori , .
+    s = s.replace(/[^\d.,\-+]/g, '');
+
+    // Caso con sia . che , => in EU di solito . = migliaia, , = decimali
+    if (s.includes('.') && s.includes(',')) {
+      s = s.replace(/\./g, '').replace(',', '.'); // "1.234,56" -> "1234.56"
+    } else if (s.includes(',')) {
+      // Solo virgola => trattala come decimale
+      s = s.replace(',', '.'); // "75,5" -> "75.5"
+    } else {
+      // Solo punto o solo cifre -> già OK (il punto può essere decimale o migliaia senza virgola: accettiamo come decimale)
+      // Se volessi forzare il punto come migliaia (raro), potresti rimuovere i punti quando non ci sono decimali.
+    }
+
+    const n = parseFloat(s);
+    amount = Number.isFinite(n) ? n : 0;
   }
 
   return {
-    amount,        // usato nei conteggi
-    label: raw || '0'  // mostrato in stampa così com’è
+    amount,       // usato nei conteggi
+    label: raw    // mostrato in stampa così com’è
   };
 }
-
 // ===== Formule =====
 function priceFromMargin(cost, marginPct){
   const m = (Number(marginPct)||0)/100;
