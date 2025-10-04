@@ -1,13 +1,11 @@
-// app.js — Preventivo PRO (libero/donazione)
-// img per riga + modalità Margine/Ricarico + fix input + auto-prezzo + PRINT VIEW (interna/cliente) + Donazione
+// app.js — Preventivo PRO (gratuito con omaggio)
+// img per riga + modalità Margine/Ricarico + fix input + auto-prezzo + PRINT VIEW (interna/cliente)
 
 const $ = sel => document.querySelector(sel);
 const money = v => (v || 0).toLocaleString('it-IT', { style:'currency', currency:'EUR' });
 
-// ===== Config Donazione =====
-// DOPO (pagina di donazione pubblica, precompilata a 5 € ma modificabile)
-const PAYPAL_URL = "https://paypal.me/pezzalialessandro/5";
-const MIN_DONATION_EUR = 5;
+// ===== Link Omaggio (Il Cubo) =====
+const GIFT_URL = "https://www.alessandropezzali.it/KubeApp/";
 
 // ===== PWA install =====
 let deferred;
@@ -450,11 +448,10 @@ $('#resetApp').addEventListener('click',()=>{
   }
 });
 
-// Donazione
-$('#donateBtn')?.addEventListener('click', ()=>{
-  window.open(PAYPAL_URL, '_blank', 'noopener');
-  localStorage.setItem('preventivo.pro.donated','1'); // cosmetico
-  toast('Grazie! Donazione (consigliato ≥ €5)');
+// Omaggio: Il Cubo
+document.getElementById('giftBtn')?.addEventListener('click', ()=>{
+  window.open(GIFT_URL, '_blank', 'noopener');
+  toast('🎁 Buon divertimento con Il Cubo!');
 });
 
 // Init
