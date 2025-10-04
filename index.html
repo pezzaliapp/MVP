@@ -256,6 +256,7 @@
 <aside class="card">
   <h2>Margini & Totali</h2>
   <div class="section">
+
     <!-- IVA + Spese -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
       <div>
@@ -264,7 +265,7 @@
       </div>
       <div>
         <label>Spese (trasporto, installazione)</label>
-        <!-- text: può essere 0 oppure testo tipo 'inclusi', 'da definire' -->
+        <!-- text: può essere 0 oppure testo tipo "inclusi", "da definire" o "trasporto 200€" -->
         <input id="extra" type="text" value="0" placeholder="0 oppure 'inclusi'">
       </div>
     </div>
@@ -285,18 +286,17 @@
       </div>
     </div>
 
-    <!-- Target e suggeritore -->
-    <div style="margin-top:12px">
-      <div class="pill">Target margine medio %:
-        <input id="targetMargin" type="number" value="30" style="width:80px;margin-left:8px">
-      </div>
-      <button class="btn" id="autoPrice" style="margin-top:8px">
-        Suggerisci prezzi per target
-      </button>
-      <p class="muted" style="margin-top:10px">
-        Suggeritore: calcola i prezzi netti per ogni riga per raggiungere il <em>target</em> di margine medio.
-      </p>
+    <!-- Selettore unico Modalità prezzo -->
+    <div class="pill" style="margin-top:12px">
+      <span>Modalità prezzo:</span>
+      <select id="modeMirror" class="select">
+        <option>Margine</option>
+        <option>Ricarico</option>
+      </select>
+    </div>
 
+  </div>
+</aside>
       <!-- Selettore unico Modalità prezzo -->
       <div class="pill" style="margin-top:12px">
         <span>Modalità prezzo:</span>
