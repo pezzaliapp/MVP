@@ -35,12 +35,16 @@
     .btn:hover{transform:translateY(-1px)}
     .btn-cta{background:var(--cta);border-color:#0e8a43;color:#07120c;font-weight:700}
     .btn-ghost{background:transparent}
+    .select{
+      background:#111834;border:1px solid var(--line);color:var(--ink);
+      padding:8px 10px;border-radius:10px;cursor:pointer
+    }
 
     /* Layout */
     main{max-width:1200px;margin:16px auto;padding:0 12px 110px}
     .grid{
       display:grid;
-      grid-template-columns:minmax(560px,1fr) 380px; /* evita tagli a destra */
+      grid-template-columns:minmax(560px,1fr) 380px;
       gap:16px;
     }
     @media(max-width:1100px){ .grid{ grid-template-columns:1fr } }
@@ -62,7 +66,7 @@
     }
     input:focus,select:focus{ border-color:var(--focus); box-shadow:0 0 0 3px rgba(45,212,191,.12) }
 
-    /* Tabella righe */
+    /* Tabella righe (vista Tabella) */
     table{width:100%; border-collapse:separate; border-spacing:0 8px; table-layout:fixed}
     th{font-size:12px;color:var(--muted);text-align:left;padding:0 8px}
     td{padding:6px 8px; font-size:14px}
@@ -116,9 +120,43 @@
       .col-disc{width:80px}
     }
 
+    /* -------- VISTA CARD (mobile-like ma attivabile anche su desktop) -------- */
+    body.layout-cards table thead{display:none}
+    body.layout-cards table{border-spacing:0 10px}
+    body.layout-cards tr.item{
+      display:grid;
+      grid-template-columns:90px 1fr;
+      grid-template-areas:
+        "img desc"
+        "cost cost"
+        "margin margin"
+        "price price"
+        "qty disc"
+        "del del";
+      gap:10px;
+      padding:10px; /* usa i padding del td */
+    }
+    body.layout-cards tr.item td{padding:0;border:none;background:transparent}
+    body.layout-cards tr.item td:nth-child(1){grid-area:img}
+    body.layout-cards tr.item td:nth-child(2){grid-area:desc}
+    body.layout-cards tr.item td:nth-child(3){grid-area:cost}
+    body.layout-cards tr.item td:nth-child(4){grid-area:margin}
+    body.layout-cards tr.item td:nth-child(5){grid-area:price}
+    body.layout-cards tr.item td:nth-child(6){grid-area:qty}
+    body.layout-cards tr.item td:nth-child(7){grid-area:disc}
+    body.layout-cards tr.item td:nth-child(8){grid-area:del; text-align:right}
+
+    /* Etichette sui campi (simulate via ::before per non toccare app.js) */
+    body.layout-cards tr.item td:nth-child(2)::before{content:"Descrizione";display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
+    body.layout-cards tr.item td:nth-child(3)::before{content:"Costo";display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
+    body.layout-cards tr.item td:nth-child(4)::before{content:var(--lbl-marg,"Margine %");display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
+    body.layout-cards tr.item td:nth-child(5)::before{content:"Prezzo netto";display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
+    body.layout-cards tr.item td:nth-child(6)::before{content:"Q.tà";display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
+    body.layout-cards tr.item td:nth-child(7)::before{content:"Sconto %";display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
+
     /* Print */
     @media print{
-      header, footer, #resetApp, #unlockPro, #installBtn, #importCsv, #saveQuote, #printBtn, #addItem, [data-del]{ display:none !important; }
+      header, footer, #resetApp, #unlockPro, #installBtn, #importCsv, #saveQuote, #printBtn, #addItem, [data-del], #viewSelect{ display:none !important; }
       body{background:white;color:#111}
       .card{box-shadow:none;border:1px solid #ddd}
       .thumb{width:64px;height:64px}
@@ -136,6 +174,16 @@
     <div class="bar">
       <h1>Preventivo PRO</h1>
       <span class="tag">PWA • Offline</span>
+
+      <!-- Selettore vista -->
+      <div style="display:flex;gap:6px;align-items:center">
+        <label for="viewSelect" class="tag" style="border:none;padding:0">Vista:</label>
+        <select id="viewSelect" class="select">
+          <option value="table">Tabella</option>
+          <option value="cards">Card (mobile)</option>
+        </select>
+      </div>
+
       <button id="installBtn" class="btn btn-ghost" hidden>Aggiungi alla Home</button>
       <div style="flex:1"></div>
       <button class="btn" id="importCsv">Importa CSV</button>
@@ -175,8 +223,8 @@
             <thead>
               <tr>
                 <th>Img</th><th>Descrizione</th>
-                <th class="right">Costo</th>
-                <th class="right">Margine %</th>
+                <th class="right" id="thCost">Costo</th>
+                <th class="right" id="thMargin">Margine %</th>
                 <th class="right">Prezzo netto</th>
                 <th class="right">Q.tà</th>
                 <th class="right">Sconto %</th>
@@ -236,5 +284,43 @@
   </footer>
 
   <script src="./app.js"></script>
+
+  <!-- Switch vista + auto-rilevamento -->
+  <script>
+    (function(){
+      const key = 'preventivo.pro.layout';
+      const qp = new URLSearchParams(location.search);
+      const fromQuery = qp.get('layout'); // 'table' | 'cards'
+      const saved = localStorage.getItem(key);
+      const ua = navigator.userAgent || '';
+      const looksMobile = /iPhone|Android.+Mobile/.test(ua) || window.innerWidth < 900;
+
+      let layout = fromQuery || saved || (looksMobile ? 'cards' : 'table');
+
+      function applyLayout(mode){
+        document.body.classList.toggle('layout-cards', mode==='cards');
+        document.body.style.setProperty('--lbl-marg', mode==='cards' ? (document.getElementById('thMargin')?.textContent||'Margine %') : 'Margine %');
+        const sel = document.getElementById('viewSelect');
+        if(sel) sel.value = mode;
+        localStorage.setItem(key, mode);
+      }
+
+      // init
+      applyLayout(layout);
+
+      // UI select
+      document.getElementById('viewSelect')?.addEventListener('change', (e)=>{
+        applyLayout(e.target.value);
+      });
+
+      // Aggiorna etichetta "Margine %" anche se cambi modalità prezzo da app.js
+      const obs = new MutationObserver(()=>{
+        if(document.body.classList.contains('layout-cards')){
+          document.body.style.setProperty('--lbl-marg', document.getElementById('thMargin')?.textContent || 'Margine %');
+        }
+      });
+      obs.observe(document.documentElement, {subtree:true, childList:true, characterData:true});
+    })();
+  </script>
 </body>
 </html>
